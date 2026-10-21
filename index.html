@@ -351,13 +351,32 @@ function leadBtn(l){
     <span class="meta">${esc(l.fio||"")}${l.status?` · <span class="pill">${esc(l.status)}</span>`:""} · ${due}</span>
     ${hook?`<div class="hookline">${esc(hook.t)}${hook.d?` · ${ru(hook.d)}`:""}</div>`:""}</button>`;
 }
+const isNew = l => !l.closed && l.status === "Новый клиент";
+let NEW_ALL = false, ADDMODE = "one";
+const NEW_LIMIT = 5;   // регламент: «Новый лид» не дольше 5 рабочих дней
+function workdays(from, to){ let n=0; const d=new Date(from+"T00:00:00"), e=new Date(to+"T00:00:00");
+  while (d<e){ d.setDate(d.getDate()+1); const w=d.getDay(); if (w!==0 && w!==6) n++; } return n; }
+function newBtn(l){
+  const n = workdays(l.created||iso(today()), iso(today())), late = n > NEW_LIMIT;
+  const ph = phonesOf(l)[0];
+  return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
+    <span class="meta">${esc(l.fio||"ФИО не указано")}${ph?` · ${esc(ph)}`:""} · <span${late?' class="late"':""}>в статусе ${n} раб. дн.${late?` (норматив ${NEW_LIMIT})`:""}</span></span></button>`;
+}
 function drawToday(){
   const t = iso(today());
-  const due = active().filter(l=>!l.next || l.next<=t).sort((a,b)=>((a.next||"")+(a.nextTime||"")).localeCompare((b.next||"")+(b.nextTime||"")));
-  const soon = active().filter(l=>l.next && l.next>t && l.next<=addDays(3)).sort((a,b)=>(a.next+(a.nextTime||"")).localeCompare(b.next+(b.nextTime||"")));
+  const due = active().filter(l=>!isNew(l) && (!l.next || l.next<=t)).sort((a,b)=>((a.next||"")+(a.nextTime||"")).localeCompare((b.next||"")+(b.nextTime||"")));
+  const soon = active().filter(l=>!isNew(l) && l.next && l.next>t && l.next<=addDays(3)).sort((a,b)=>(a.next+(a.nextTime||"")).localeCompare(b.next+(b.nextTime||"")));
   main.innerHTML = `<div class="card"><h2>Сегодня · ${ru(t)}</h2>
     ${due.length?`<div class="list">${due.map(leadBtn).join("")}</div>`:`<p class="muted">На сегодня звонков нет. Добавь клиента кнопкой «+».</p>`}</div>
     ${soon.length?`<div class="card"><h2>Ближайшие 3 дня</h2><div class="list">${soon.map(leadBtn).join("")}</div></div>`:""}`;
+  const nw = active().filter(isNew).sort((a,b)=>(a.created||"").localeCompare(b.created||""));
+  if (nw.length){
+    const shown = NEW_ALL ? nw : nw.slice(0,8);
+    main.insertAdjacentHTML("beforeend", `<div class="card"><h2>Новые · ${nw.length}</h2>
+      <div class="list">${shown.map(newBtn).join("")}</div>
+      ${nw.length>8?`<button class="btn" type="button" id="newall" style="margin-top:10px">${NEW_ALL?"Свернуть":"Показать все"}</button>`:""}</div>`);
+    const na = document.getElementById("newall"); if (na) na.onclick = () => { NEW_ALL=!NEW_ALL; drawToday(); };
+  }
 }
 function drawLeads(arch){
   const all = Object.values(LEADS).filter(l=>arch?!!l.closed:!l.closed).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
@@ -371,8 +390,58 @@ function archBtn(l){ const back = addDays(COOLDOWN_DAYS, l.closed.date);
   return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
     <span class="meta">${esc(l.closed.status)} · ${ru(l.closed.date)} · снова можно с ${ru(back)}</span>
     <div class="hookline">Итог: ${esc(l.closed.reason)}</div></button>`; }
+function addTabs(){ return `<div class="row" style="margin:0 0 6px"><button class="btn${ADDMODE==="one"?" primary":""}" type="button" data-addmode="one">Один клиент</button><button class="btn${ADDMODE==="list"?" primary":""}" type="button" data-addmode="list">Список из Excel</button></div>`; }
+function bindAddTabs(){ main.querySelectorAll("[data-addmode]").forEach(b=>b.onclick=()=>{ ADDMODE=b.dataset.addmode; drawAdd(); }); }
+function parseTSV(text){ // табличный текст из Excel: столбцы через таб, ячейки с переносами — в кавычках
+  const rows=[]; let row=[], cell="", q=false;
+  for (let i=0;i<text.length;i++){ const c=text[i];
+    if (q){ if (c==='"'){ if (text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; }
+    else if (c==='"' && cell==="") q=true;
+    else if (c==="\t"){ row.push(cell); cell=""; }
+    else if (c==="\n" || c==="\r"){ if (c==="\r" && text[i+1]==="\n") i++; row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c; }
+  if (cell!=="" || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.some(x=>x.trim()!==""));
+}
+function phonesFrom(txt){ return String(txt||"").split(/[,;\n]+/).map(x=>x.trim()).filter(x=>(x.match(/\d/g)||[]).length>=10); }
+function importList(text){
+  const all = parseTSV(text);
+  const hi = all.slice(0,3).findIndex(r=>r.some(c=>c.trim().toLowerCase()==="инн"));   // строка заголовков (бывает вторая)
+  if (hi<0 || all.length<hi+2) return {err:"Не нашёл строку заголовков со столбцом «ИНН» или данные под ней. Скопируй из Excel вместе с заголовками."};
+  const raw = all[hi].map(h=>h.trim()), hdr = raw.map(h=>h.toLowerCase());
+  const iName = hdr.findIndex(h=>h.includes("компани")||h.includes("наименование"));
+  const iInn = hdr.findIndex(h=>h==="инн");            // первый столбец ИНН — компания
+  const iFio = hdr.findIndex(h=>h.includes("фио"));
+  const iPh = hdr.map((h,i)=>(/(тел|номер|контакт|моб|phone|альтернатив)/.test(h) && !/(инн|фио|почт|mail|адрес|сайт)/.test(h) && i!==iName && i!==iFio)?i:-1).filter(i=>i>=0);
+  if (iName<0) return {err:"Не нашёл столбец с названием компании («Компания» или «Наименование»)."};
+  return {rows:all.slice(hi+1), iName, iInn, iFio, iPh, cols:{name:raw[iName], inn:raw[iInn], fio:iFio>=0?raw[iFio]:"—", ph:iPh.map(i=>raw[i])}};
+}
+async function runImport(text){
+  const r = importList(text); if (r.err) return r;
+  let added=0, dup=0, bad=0;
+  for (const row of r.rows){
+    const inn=(row[r.iInn]||"").replace(/\D/g,""), name=(row[r.iName]||"").trim();
+    if (!/^(\d{10}|\d{12})$/.test(inn) || !name){ bad++; continue; }
+    if (LEADS[inn]){ dup++; continue; }
+    const phones=[]; r.iPh.forEach(i=>phonesFrom(row[i]).forEach(p=>{ if(!phones.includes(p)) phones.push(p); }));
+    await save({inn, name, fio: r.iFio>=0?(row[r.iFio]||"").trim():"", pos:"", phones, status:"Новый клиент", tag:"", next:"", nextTime:"", nextWhat:"", hooks:[], hist:[], created:iso(today()), closed:null});
+    added++;
+  }
+  return {added, dup, bad, cols:r.cols};
+}
+function drawImport(res){
+  main.innerHTML = `<div class="card"><h2>Новые клиенты</h2>${addTabs()}
+    <p class="small muted">В Excel выдели таблицу вместе со строкой заголовков, скопируй и вставь сюда. Нужны столбцы с названием компании и ИНН; ФИО и телефоны подхватятся, если есть. Клиенты с уже существующим ИНН пропускаются.</p>
+    <textarea id="imp" rows="8" placeholder="Вставь скопированную таблицу"></textarea>
+    <div class="row" style="margin-top:12px"><button class="btn primary" type="button" id="impgo">Загрузить</button></div>
+    ${res?`<div class="err">${res.err?esc(res.err):`Добавлено: <b>${res.added}</b>. Уже были: ${res.dup}. Пропущено без ИНН или названия: ${res.bad}.<br><span class="small muted">Распознал столбцы: компания «${esc(res.cols.name)}», ИНН «${esc(res.cols.inn)}», ФИО «${esc(res.cols.fio)}», телефоны: ${res.cols.ph.map(x=>"«"+esc(x)+"»").join(", ")||"не найдены"}.</span>`}</div>`:""}</div>`;
+  bindAddTabs();
+  document.getElementById("impgo").onclick = async () => { const t=document.getElementById("imp").value; if(!t.trim()) return;
+    const r = await runImport(t); if (r.added) toast("Добавлено: "+r.added); drawImport(r); };
+}
 function drawAdd(msg){
-  main.innerHTML = `<div class="card"><h2>Новый клиент</h2>
+  if (ADDMODE==="list") return drawImport();
+  main.innerHTML = `<div class="card"><h2>Новый клиент</h2>${addTabs()}
     <form id="addf">
       <label for="f_inn">ИНН</label><input id="f_inn" inputmode="numeric" required pattern="\\d{10}|\\d{12}" placeholder="10 или 12 цифр">
       <label for="f_name">Компания</label><input id="f_name" required placeholder="ООО «Пример»">
@@ -385,11 +454,12 @@ function drawAdd(msg){
       <label for="f_st">Текущий статус</label>
       <select id="f_st"><option>Новый</option><option>Сделать холодный звонок</option><option>Уточнить контакт</option><option>Назначен 2-й звонок</option><option>Назначена встреча</option><option>Назначена видео-встреча</option><option>Отправить КП</option><option>ХОЛД</option></select>
       <label for="f_nw">Следующий шаг</label><input id="f_nw" placeholder="Например: перезвонить по итогам письма">
-      <label for="f_nd">Дата следующего шага</label><input id="f_nd" type="date">
-      <label for="f_nt">Время звонка</label><input id="f_nt" type="time">
+      <label for="f_nd">Дата следующего шага (необязательно)</label><input id="f_nd" type="date">
+      <label for="f_nt">Время звонка (необязательно)</label><input id="f_nt" type="time">
       <label for="f_hc">Что уже было (необязательно)</label><textarea id="f_hc" rows="3" placeholder="Кто, что сказал, о чём договорились"></textarea>
       <div class="row" style="margin-top:14px"><button class="btn primary" type="submit">Добавить</button></div>
     </form>${msg?`<div class="err">${msg}</div>`:""}</div>`;
+  bindAddTabs();
   document.getElementById("addph").onclick=()=>{ const i=document.createElement("input"); i.className="ph"; i.inputMode="tel"; i.placeholder="Ещё номер"; i.setAttribute("aria-label","Телефон"); i.style.marginTop="6px"; document.getElementById("phs").appendChild(i); i.focus(); };
   document.getElementById("addf").addEventListener("submit", async e=>{ e.preventDefault();
     const v = id => document.getElementById(id).value.trim();
@@ -400,7 +470,7 @@ function drawAdd(msg){
     if (ex && ex.closed){ const back = addDays(COOLDOWN_DAYS, ex.closed.date);
       if (iso(today()) < back) return drawAdd(`Клиент <b>${esc(ex.name)}</b> закрыт ${ru(ex.closed.date)} («${esc(ex.closed.reason)}»). Добавить снова можно с ${ru(back)}.`); }
     const l = ex || {inn, created: iso(today()), hist: []};
-    Object.assign(l, {name:v("f_name"), fio:v("f_fio"), pos:v("f_pos"), phones:[...document.querySelectorAll(".ph")].map(i=>i.value.trim()).filter(Boolean), phone:undefined, status:v("f_st")==="Новый"?"Новый клиент":v("f_st"), tag:"", next: v("f_nd")||iso(today()), nextWhat:v("f_nw"), nextTime:v("f_nd")?v("f_nt"):"", closed:null});
+    Object.assign(l, {name:v("f_name"), fio:v("f_fio"), pos:v("f_pos"), phones:[...document.querySelectorAll(".ph")].map(i=>i.value.trim()).filter(Boolean), phone:undefined, status:v("f_st")==="Новый"?"Новый клиент":v("f_st"), tag:"", next: v("f_nd")||(v("f_nt")?iso(today()):""), nextWhat:v("f_nw"), nextTime:v("f_nt"), closed:null});
     l.hooks = v("f_hook") ? [{t:v("f_hook"), d:""}] : (l.hooks||[]);
     if (v("f_hc")) l.hist.push({d:iso(today()), st:"Занесено в Callex", c:v("f_hc")});
     if (ex) l.hist.push({d:iso(today()), st:"Возврат в работу", c:`после закрытия ${ru(ex.closed.date)}: ${ex.closed.reason}`});
@@ -467,8 +537,8 @@ function drawCall(){
         <label for="s_tag">Тег</label><input id="s_tag" value="${esc(e.tag.split(" ")[0]==="—"?"":e.tag.split(" ")[0])}">
         ${closing?`<label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="Например: КОНК — работают со Сбером, всё устраивает">
           <p class="small muted">Клиент уйдёт в архив. Добавить снова можно через ${COOLDOWN_DAYS} дней — на эту дату можно поставить перезвон в календарь.</p>`:""}
-        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага"}</label><input id="s_next" type="date" value="${due!=null?addDays(due):""}" ${closing?"":"required"}>
-        <label for="s_nt">Время звонка</label><input id="s_nt" type="time">
+        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага (необязательно)"}</label><input id="s_next" type="date" value="${due!=null?addDays(due):""}">
+        <label for="s_nt">Время звонка (необязательно)</label><input id="s_nt" type="time">
         <label for="s_hook">Зацепка на следующий звонок (необязательно)</label><input id="s_hook" placeholder="Например: 25.10 у них выставка">
         <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Сохранить в карточку</button></div>
       </form>
@@ -493,7 +563,7 @@ function drawCall(){
     if (closing){ if(!g("s_reason")) return toast("Заполни итог по клиенту");
       l.closed = {status:closing, reason:g("s_reason"), date:iso(today())}; entry.c = (entry.c?entry.c+" · ":"")+"Итог: "+g("s_reason");
       l.next = g("s_next") || addDays(COOLDOWN_DAYS); l.nextTime = g("s_nt"); l.nextWhat = "перезвон после закрытия"; }
-    else { l.next = g("s_next"); l.nextTime = g("s_nt"); l.nextWhat = e.next; }
+    else { l.next = g("s_next") || (g("s_nt")?iso(today()):""); l.nextTime = g("s_nt"); l.nextWhat = e.next; }
     l.hist = l.hist||[]; l.hist.push(entry); await save(l);
     toast(closing?"Клиент закрыт и перенесён в архив":"Сохранено"); CALL=null; CUR=l.inn; draw(); };
 }
