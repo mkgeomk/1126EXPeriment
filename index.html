@@ -1,0 +1,525 @@
+<title>Callex</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: мобильное приложение — шапка, вкладки снизу, карточки со скруглением; оранжевый — акцент, петроль — заголовки */
+:root{
+  --bg:#eef2f5; --sheet:#ffffff; --fg:#1d2a33; --muted:#6b7780; --line:#dde4ea;
+  --petrol:#073f5a; --orange:#e8761b; --orange-soft:#fdf0e4; --zebra:#f3f6f9; --own:#e9f1f6;
+  --ok:#1d7a45; --warn:#b5650a; --stop:#b8352a;
+  --body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#080f14; --sheet:#101b24; --fg:#e9eef2; --muted:#8a9aa5; --line:#1f2e39;
+  --petrol:#9fd0e6; --orange:#f39a4a; --orange-soft:#261c12; --zebra:#15232e; --own:#13293a;
+  --ok:#6fcf93; --warn:#f0a85a; --stop:#f07c70; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#080f14; --sheet:#101b24; --fg:#e9eef2; --muted:#8a9aa5; --line:#1f2e39;
+  --petrol:#9fd0e6; --orange:#f39a4a; --orange-soft:#261c12; --zebra:#15232e; --own:#13293a;
+  --ok:#6fcf93; --warn:#f0a85a; --stop:#f07c70; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:14px 96px}
+.app{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.top h1{font:700 22px/1.2 var(--body);margin:0;letter-spacing:-.01em}
+.top h1 span{color:var(--orange)}
+.top small{color:var(--muted);font-size:12px}
+.card{background:var(--sheet);border-radius:18px;padding:16px;border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+h2{font:650 17px/1.3 var(--body);margin:0 0 10px;color:var(--petrol)}
+h3{font:600 12px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.list{display:flex;flex-direction:column;gap:8px}
+.lead{display:block;width:100%;text-align:left;background:var(--sheet);border:1px solid transparent;border-radius:16px;padding:12px 14px;color:var(--fg);font:inherit;cursor:pointer}
+.lead:hover{border-color:var(--orange)}
+.lead b{display:block;font-weight:600}
+.lead .meta{font-size:13px;color:var(--muted)}
+.hookline{margin-top:6px;font-size:13px;background:var(--orange-soft);border-radius:10px;padding:5px 9px}
+.pill{display:inline-block;font:600 12px var(--body);padding:2px 10px;border-radius:999px;background:var(--zebra)}
+.st-go{color:var(--ok)} .st-wait{color:var(--warn)} .st-stop{color:var(--stop)}
+.late{color:var(--stop);font-weight:600}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+input,textarea,select{width:100%;font:15px/1.4 var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--zebra);color:var(--fg)}
+textarea{resize:vertical}
+.btn{font:600 14px var(--body);border:0;border-radius:999px;padding:10px 16px;cursor:pointer;background:var(--zebra);color:var(--fg)}
+.btn.primary{background:var(--orange);color:#1a1006}
+.btn.ghost{background:none;padding:6px 8px;color:var(--muted)}
+.btn:disabled{opacity:.4}
+.btn:focus-visible,.opt:focus-visible,.lead:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.err{background:var(--orange-soft);border-radius:12px;padding:10px 12px;margin-top:10px}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;margin:0}
+.kv dt{font-size:12px;color:var(--muted);font-weight:600;padding-top:2px}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.hist{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.hist div{border-left:2px solid var(--line);padding-left:10px}
+.say{background:var(--orange-soft);border-radius:14px;padding:12px 14px;margin:0 0 12px}
+.say b{font-weight:600;font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.say p{margin:0} .say p+p{margin-top:8px}
+.say p.own{background:var(--own);border-radius:10px;margin-inline:-6px;padding:6px}
+.say p.own::before{content:"адаптация · ";font-size:11px;font-weight:600;text-transform:uppercase;color:var(--muted)}
+.q{font:650 18px/1.3 var(--body);margin:0 0 12px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.opt{font:500 15px/1.35 var(--body);text-align:left;color:var(--fg);background:var(--zebra);border:1px solid transparent;border-radius:14px;padding:12px 14px;cursor:pointer}
+.opt:hover{border-color:var(--orange)}
+.opt small{display:block;font-weight:400;font-size:13px;color:var(--muted);margin-top:2px}
+.opt.go{background:var(--orange-soft)}
+.path{font-size:12px;color:var(--muted);margin-bottom:8px}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--sheet);border-top:1px solid var(--line);display:flex;justify-content:center;
+  padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));z-index:5}
+.tabs-in{display:flex;gap:4px;max-width:640px;width:100%}
+.tab{flex:1;font:600 13px var(--body);border:0;background:none;color:var(--muted);padding:8px 4px;border-radius:12px;cursor:pointer}
+.tab-plus{flex:0 0 52px;font-size:22px;line-height:1;font-weight:500}
+.tab[aria-current="true"]{background:var(--orange-soft);color:var(--orange)}
+.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--sheet);padding:8px 14px;border-radius:999px;font-size:13px;z-index:6}
+.demo{font-size:12px;color:var(--muted);text-align:center}
+@media (max-width:420px){.kv{grid-template-columns:1fr;gap:0}.kv dd{margin-bottom:8px}}
+</style>
+
+<div class="app">
+  <div class="top"><h1>Call<span>ex</span></h1><small id="who"></small></div>
+  <main id="main"></main>
+  <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
+</div>
+<nav class="tabs"><div class="tabs-in">
+  <button class="tab" data-tab="today" type="button">Сегодня</button>
+  <button class="tab" data-tab="leads" type="button">Клиенты</button>
+  <button class="tab tab-plus" data-tab="add" type="button" aria-label="Добавить клиента">+</button>
+  <button class="tab" data-tab="archive" type="button">Архив</button>
+</div></nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+document.documentElement.dataset.theme="dark";
+// ---------- Темы звонка ----------
+const THEMES = {
+  ved:{name:"ВЭД", hint:"заметный импорт или экспорт",
+    gd:"вопросы внешнеэкономической деятельности",
+    zone:"вы отвечаете за финансы и расчёты с поставщиками",
+    fact:[ "«Изучил вашу компанию, вижу, что вы работаете с поставщиками из Японии. Подскажите, как сейчас устроены расчёты — напрямую или через агентов?» [слушаем] «А с европейскими поставщиками — многие говорят, что те требуют переконтрактовки. Вас это коснулось?»" ],
+    topic:"расчётах с зарубежными поставщиками",
+    why:"«Понял вас. Подскажите, через кого сейчас проходят платежи за рубеж и что для вас в них важнее всего — чтобы я понимал, с чем к вам вернуться?»"},
+  fin:{name:"Финансирование", hint:"рост, контракты, долг",
+    gd:"вопросы финансирования",
+    zone:"вы отвечаете за финансы и привлечение финансирования",
+    own:true,
+    fact:[ "«Вижу по отчётности, что выручка за два года заметно выросла. Как сейчас финансируете рост — из своих средств или кредитами?» [слушаем] «Под ближайшие контракты понадобится пополнять оборотные средства?»" ],
+    topic:"финансировании роста компании",
+    why:"«Понял вас. Подскажите, с кем сейчас кредитуетесь и что для вас важнее — скорость решения или условия по обеспечению? Чтобы я понимал, с чем к вам вернуться»."},
+  dep:{name:"Размещение средств", hint:"прибыль, нет долга",
+    gd:"финансовые вопросы компании",
+    zone:"вы отвечаете за финансы компании",
+    own:true,
+    fact:[ "«Вижу, что компания стабильно прибыльная и без кредитной нагрузки. Как сейчас размещаете свободные средства — депозиты, остатки на счетах?» [слушаем] «Что для вас важнее — доходность или возможность быстро забрать деньги?»" ],
+    topic:"размещении свободных средств",
+    why:"«Понял вас. Подскажите, где сейчас размещаете средства и что вас в этом устраивает — чтобы я понимал, с чем к вам вернуться?»"},
+  rko:{name:"Расчёты и обслуживание", hint:"явного повода нет",
+    gd:"вопросы банковского обслуживания компании",
+    zone:"вы отвечаете за финансы и банковское обслуживание",
+    own:true,
+    fact:[ "«Изучил вашу компанию, вижу, что вы [факт из подготовки]. Сколько банков у вас сейчас в обслуживании и что в работе с ними неудобно?» [слушаем] «Как быстро банк решает ваши нестандартные вопросы?»" ],
+    topic:"банковском обслуживании компании",
+    why:"«Понял вас. Подскажите, что для вас сейчас важнее всего в работе с банками — чтобы я понимал, с чем к вам вернуться?»"},
+  ssd:{name:"Сложноструктурированные сделки", hint:"собственник, группа, проекты",
+    gd:"вопросы развития бизнеса и сделок",
+    zone:"вы отвечаете за финансы и сделки компании",
+    own:true,
+    fact:[ "«Вижу по ЕГРЮЛ, что в этом году в компании сменился собственник. Планируете развитие через покупку других компаний или крупные проекты?» [слушаем] «Как обычно решаете такие задачи — своими силами или с консультантами?»" ],
+    topic:"сделках и финансировании проектов",
+    why:"«Понял вас. Подскажите, как сейчас решаете такие задачи и кто в компании этим занимается — чтобы я понимал, с чем к вам вернуться?»"}
+};
+let theme = null;
+const T = () => THEMES[theme] || THEMES.rko;
+const R = x => typeof x === "function" ? x(T()) : x;       // строка или функция от темы
+const own = t => ({own:t});                                    // пометка «адаптация»
+
+// ---------- Узлы ----------
+// Вопрос: {label, q, say:[...], opts:[[текст, узел, подпись?, тема?]]}; Лист: {label, end:{status, cls, tag, next, say, note, go:[[текст, узел]]}}
+const themeOpts = next => Object.entries(THEMES).map(([k,t]) => [t.name, next, t.hint, k]);
+const N = {
+  start:{label:"Начало", q:"Какой это звонок?",
+    opts:[["Первый звонок в компанию","themeA","ГД, ФД или общая линия"],["Повторный звонок ЛПР","themeB","после 2-го звонка, видео или письма"],["Ищу новый выход на компанию","exits","контакт не найден, отказали, не соединили"]]},
+  themeA:{label:"Тема", q:"За что зацепился при подготовке?", say:["Тема определяет, о чём спрашивать ГД и ФД. Подсказки — в таблице «Как выбрать тему» ниже."], opts:themeOpts("dial")},
+  themeB:{label:"Тема", q:"О чём договаривались в прошлый раз?", opts:themeOpts("lprRe")},
+
+  dial:{label:"Набор", q:"Набираешь номер. Ответили?",
+    say:["Перед первым звонком, за 30–60 минут — сообщение в Макс или Telegram по шаблону из приложения А."],
+    opts:[["Да","who"],["Нет, не взяли трубку","nd"]]},
+  nd:{label:"Недозвон", q:"Какая это попытка?", opts:[["Первая или вторая","nd12"],["Третья (за 10 рабочих дней)","nd3"]]},
+  nd12:{label:"НД-1/2", end:{status:"Сделать холодный звонок",cls:"wait",tag:"НД-1 / НД-2",next:"Повтор через 1–2 дня в другое время суток",
+    say:["Сообщение после недозвона: «Иван Петрович, добрый день. Это [имя], [должность], [банк]. Возможно, не берёте трубку с незнакомых номеров. Если что, я не спам и не бот, звоню по реальному вопросу. Буду благодарен, если ответите; в ближайшее время перезвоню»."]}},
+  nd3:{label:"НД-3", end:{status:"Уточнить контакт",cls:"wait",tag:"НД-3",next:"Найти альтернативный номер или другой контакт. 7 рабочих дней",
+    note:"После третьего недозвона — «Уточнить контакт», не ХОЛД.", go:[["Новый выход на компанию →","exits"]]}},
+  who:{label:"Кто ответил", q:"Кто на линии?", opts:[["Генеральный директор","gd"],["Финансовый директор / ЛПР","fd"],["Общая линия, секретарь","line"]]},
+
+  line:{label:"Общая линия", q:"Попросил соединить с человеком по имени. Соединили?",
+    say:["Деловой тон, как с компанией, с которой банк уже работает: «Соедините, пожалуйста, с Геннадием Алексеевичем». «Финансовый отдел» не просить.","Если имя неизвестно: «Подскажите, как зовут вашего финансового директора? Мне нужно направить ему документы». При отказе — попросить добавочный или почту."],
+    opts:[["Да, с ГД","gd"],["Да, с ФД","fd"],["Нет, не соединяют","exits"]]},
+
+  gd:{label:"ГД", q:"Есть две минуты?",
+    say:["«Добрый день! Иван Петрович?» — после подтверждения: «[Имя], [должность], [банк]. У вас есть две минуты?»","После 2–3-й попытки уместно: «Рад, что удалось до вас дозвониться»."],
+    opts:[["Да","gdAsk"],["Нет времени","notime"],["Бросил трубку","sbros"]]},
+  notime:{label:"Нет времени", q:"Предложил перезвонить через час. Назвал время?",
+    say:["«Понимаю. Через час перезвоню — удобно? Или подскажите, когда лучше». Перезванивать ровно в это время."],
+    opts:[["Да, назвал время","second"],["Нет, «перезвоните как-нибудь»","soft"]]},
+  gdAsk:{label:"Вопрос ГД", q:"Как ответил генеральный?",
+    say:[t => (theme==="ved" ? "" : "адаптация:") + `«Понимаю, что вы генеральный директор. Подскажите, ${t.gd} могу обсудить с вами или лучше с финансовым директором?»`,
+      "Продукты ГД не предлагаются, о банке — одна фраза. Цель — выйти на финансового директора.",
+      "На «в чём суть?» — задача, а не продукт: «Хочу понять, как у вас организованы расчёты с поставщиками, и если есть возможность улучшить условия — обсудить это с финансовым директором»."],
+    opts:[["Направил к ФД","gdfd"],["Готов обсуждать сам","lpr"],["Не он, но имя не называет","gdNoName"],["Возражение","obj"]]},
+  gdfd:{label:"ГД-ФД", q:"Записал ФИО и контакт ФД. Звонишь ему сейчас?",
+    say:["«Спасибо. Подскажите, как зовут финансового директора? Можете продиктовать контакт, я запишу». Если контакта нет: «Тогда хотя бы имя и отчество, я найду».","Закрытие: «Спасибо, Иван Петрович. Хорошего дня»."],
+    opts:[["Да, дозвонился до ФД","fd"],["Позже","gdfdLater"]]},
+  gdfdLater:{label:"ФД позже", end:{status:"Сделать холодный звонок",cls:"go",tag:"ГД-ФД + ФИО, должность, контакт ФД",next:"Звонок ФД в тот же или следующий день; начать со ссылки на ГД",
+    note:"Когда будешь звонить: «Первый звонок в компанию» → та же тема → «Финансовый директор»."}},
+  gdNoName:{label:"Без имени", q:"После второй попытки назвал имя ответственного?",
+    say:["«Иван Петрович, простите, что побеспокоил. Уверен, что в вашей компании работают лучшие специалисты. Но сами понимаете, всё быстро меняется, и сегодня банк даёт условия, которые имеет смысл хотя бы посмотреть. Скажите, пожалуйста, имя человека, который за это отвечает, я с ним поделюсь»."],
+    opts:[["Да","gdfd"],["Нет","exits"]]},
+
+  fd:{label:"ФД", q:"Есть две минуты?",
+    say:[t => (theme==="ved" ? "" : "адаптация:") + `«Добрый день! Геннадий Алексеевич? [Имя], [банк], [должность]. Меня направил к вам Иван Петрович. Правильно понимаю, что ${t.zone}? У вас будет две минуты?»`],
+    opts:[["Да","lpr"],["Нет времени","notime"],["Бросил трубку","sbros"]]},
+  lprRe:{label:"Повторный", q:"Человек на линии, помнит прошлый разговор?",
+    say:[own("«Добрый день, Геннадий Алексеевич! [Имя], [банк]. Как договаривались, звоню — удобно сейчас пару минут?»"),"Повторный звонок — точно в согласованное время. За 10 минут перечитай карточку."],
+    opts:[["Да, говорим","lpr"],["Нет времени","notime"],["Не берёт трубку","nd"]]},
+
+  lpr:{label:"Разговор с ЛПР", q:"Факт + 2–3 вопроса, слушаешь. Чем закончилось?",
+    say:[t => (t.own ? "адаптация:" : "") + "Факт и вопросы: " + t.fact[0],
+      "О банке — одна фраза: «Мы сейчас делаем для клиентов довольно много именно по таким задачам».",
+      "Закрытие: «Давайте сделаем так: …могу зайти буквально на 15 минут. Расскажу, как это решают другие, и посмотрим, применимо ли у вас. Удобно в 14:30?»"],
+    opts:[["Встреча","meet"],["Видео-встреча","video"],["Назвал время следующего звонка","second"],["«Пришлите на почту»","mail"],["«Не сейчас, через квартал»","hold"],["Аргументированный отказ","lprNo"],["Возражение-рефлекс","obj"]]},
+  meet:{label:"Встреча", end:{status:"Назначена встреча",cls:"go",tag:"ЛПР",next:"Подтверждение в течение 15 минут; чек-лист подготовки; подтверждение за день. На встрече: цель, сумма, срок, источник погашения, обеспечение, кто решает, с кем ещё ведут переговоры",
+    say:[t => (theme==="ved" ? "" : "адаптация:") + `«Геннадий Алексеевич, спасибо за разговор. Подтверждаю: встреча во вторник, 21.10, в 14:30 у вас в офисе. Поговорим о ${t.topic} и о том, как это решают другие. Займу не больше 20 минут. До встречи».`],
+    go:[["После встречи: чем закончилась? →","meetAfter"]]}},
+  meetAfter:{label:"После встречи", q:"Чем закончилась встреча?",
+    say:["Письмо по итогам — в течение 24 часов, лучше в день встречи: задача в формулировке клиента, действия банка и клиента с ответственными и сроками, дата следующей встречи.",
+      "Результативная встреча: клиент назвал суммы, сроки, объёмы; назвал других участников решения; сам предложил следующий шаг."],
+    opts:[["Потребность выяснена","needOk","цель, сумма, срок, обеспечение"],["Потребность не выяснена","needNo"],["Не сошлись по условиям","termsNo","остаёмся на связи"],["Договорились о следующей встрече","meet"],["Клиент отказал","lprNo"]]},
+  needOk:{label:"КП", end:{status:"Отправить КП",cls:"go",tag:"—",next:"Письмо по итогам; документы на преданализ — в сопровождение; предложение у клиента не позднее 3 рабочих дней после заключения аналитика, и сразу встреча по его обсуждению",
+    note:"Предложение без встречи не отправляем: «Отправлю сегодня, и давайте во вторник за 15 минут пройдёмся по цифрам, я приеду»."}},
+  needNo:{label:"Не выяснена", end:{status:"Назначена встреча",cls:"wait",tag:"—",next:"Остаёмся во «Встрече» с датой следующего контакта; письмо по итогам",
+    go:[["Следующий контакт: повторный звонок →","lprRe"]]}},
+  termsNo:{label:"Условия", end:{status:"ХОЛД",cls:"wait",tag:"ХОЛД до ДД.ММ + УСЛ: что не устроило",next:"Письмо по итогам с благодарностью; контакт раз в месяц с поводом — новость, изменение условий, пример похожей компании; ХОЛД не больше 90 дней",
+    say:[own("«Понимаю, сейчас по условиям не сошлись. Давайте оставаться на связи — сами знаете, в нашей сфере условия нередко меняются. Как только у нас появится что-то под вашу задачу, я сразу дам знать»."),"Повод создаём сами: отраслевая новость, затрагивающая клиента; изменение регулирования; удачный пример у похожей компании."],
+    note:"Если клиент отказал прямо — статус «Отказ», код УСЛ, другой заход через 14 дней. «Свяжусь, когда будет повод» — не ритм: каждый контакт — событие в календаре с датой.",
+    go:[["В дату контакта: повторный звонок →","lprRe"]]}},
+  video:{label:"Видео", end:{status:"Назначена видео-встреча",cls:"go",tag:"ЛПР",next:"Приглашение и подтверждение за день. Цель видео — назначить очную встречу",
+    note:"Видео — промежуточный шаг: на старте отношений очная встреча нужна обязательно. Его можно и пропустить, сразу договорившись о встрече.",
+    go:[["После видео: что дальше? →","videoAfter"]]}},
+  videoAfter:{label:"После видео", q:"Чем закончилась видео-встреча?",
+    opts:[["Договорились об очной встрече","meet"],["Назначили ещё звонок","second"],["Аргументированный отказ","lprNo"],["«Не сейчас, через квартал»","hold"]]},
+  second:{label:"2-й звонок", end:{status:"Назначен 2-й звонок",cls:"wait",tag:"ЛПР — если говорил ЛПР",next:"Записать время, тему, вопросы; событие в календаре; за 10 минут перечитать карточку",
+    note:"Третий подряд «2-й звонок» без продвижения разбирается на планёрке.", go:[["Когда звонишь: повторный звонок →","lprRe"]]}},
+  mail:{label:"На почту", q:"Ответил «пришлите» — переводишь на встречу. Согласился?",
+    say:["«Обязательно отправлю сегодня. И давайте во вторник я заеду на 15 минут, пройдёмся по цифрам — это быстрее переписки. В 11:00 или в 15:00?»"],
+    opts:[["Да, встреча","meet"],["Нет, только почта","mailOnly"]]},
+  mailOnly:{label:"Только почта", end:{status:"Сделать холодный звонок",cls:"wait",tag:"ЛПР; что отправлено",next:"Отправить материалы в тот же день. Дату перезвона ставишь сам",
+    note:"Письмо без договорённости о встрече почти всегда остаётся без ответа — в перезвоне снова веди к встрече.", go:[["Когда перезваниваешь: повторный звонок →","lprRe"]]}},
+  hold:{label:"ХОЛД", end:{status:"ХОЛД",cls:"wait",tag:"ХОЛД до ДД.ММ + причина",next:"Напоминание в календаре на дату возврата; ХОЛД не больше 90 дней",
+    note:"ХОЛД без даты недопустим.", go:[["В дату возврата: повторный звонок →","lprRe"]]}},
+  soft:{label:"Мягкий отказ", end:{status:"Сделать холодный звонок",cls:"wait",tag:"—",next:"Дату ставишь сам; в следующий раз — другой вопрос, другая тема или другой человек",
+    note:"«Перезвоните как-нибудь» — не договорённость, а мягкий отказ.", go:[["Другой человек в компании →","exits"]]}},
+
+  lprNo:{label:"Аргументированный отказ", q:"Задал вопрос о причине. Что ответил?",
+    say:[t => "адаптация:Сначала вопрос о причине: " + t.why,
+      own("Закрытие: «Хорошо, я буду на связи. Сами знаете, в нашей сфере условия нередко меняются»."),
+      "Возражение после вопросов содержит информацию: что не устраивает, кто принимает решение, когда пересматриваются условия. Факты клиента не оспариваются."],
+    opts:[["Работаем с другим банком","rKonk","запиши, с каким"],["Пул банков определён","rPul"],["Не устраивают условия","rUsl"],["Потребности нет","rNet"],["Решает собственник или другой человек","exits","новый выход"]]},
+  rKonk:{label:"КОНК", end:{status:"Отказ",cls:"stop",tag:"КОНК + какой банк + дата перезвона",next:"Другой заход через 14 дней — с учётом того, что сказал о текущем банке",go:[["Другой контакт в компании →","exits"]]}},
+  rPul:{label:"ПУЛ", end:{status:"Отказ",cls:"stop",tag:"ПУЛ + дата перезвона",next:"Другой заход через 14 дней; узнать дату пересмотра пула",
+    note:"Повторный отказ после другого захода — через 4 недели карточка уходит в обмен базами.",go:[["Другой контакт в компании →","exits"]]}},
+  rUsl:{label:"УСЛ", end:{status:"Отказ",cls:"stop",tag:"УСЛ + что не устроило + дата перезвона",next:"Другой заход через 14 дней — с тем, что не устроило",
+    note:"Ставки по телефону не называть.",go:[["Другой контакт в компании →","exits"]]}},
+  rNet:{label:"НЕТ", end:{status:"Отказ",cls:"stop",tag:"НЕТ + дата перезвона",next:"Другой заход через 14 дней: другой вопрос, другая тема, другое время",
+    note:"Возражение в начале разговора — реакция на незнакомый звонок, а не решение.",go:[["Другой контакт в компании →","exits"]]}},
+
+  obj:{label:"Возражение", q:"Какое возражение?",
+    say:["Структура ответа: согласие → обоснование → вопрос → следующий шаг. Не перечислять продукты, не называть ставки, не ругать другие банки. После двух возражений подряд без продвижения — корректно завершить."],
+    opts:[["«У нас определён пул банков»","oPul"],["«Потребности нет, всё хорошо»","oNet"],["«Спасибо, не интересно»","oNi"],["«У нас есть специально обученные люди»","oPeople"],["«Пришлите на почту»","mail"],["«Нет времени»","notime"]]},
+  oPul:{label:"Пул банков", q:"Ответил по регламенту. Удалось договориться?",
+    say:["«Понимаю, у вас всё выстроено. Пул обычно пересматривают раз в год — когда у вас ближайший пересмотр? Чтобы к этому моменту вы знали, что мы умеем, давайте я заеду на 15 минут, никаких обязательств»."],
+    opts:[["Да, встреча","meet"],["Нет","rPul"]]},
+  oNet:{label:"Всё хорошо", q:"Ответил по регламенту. Удалось договориться?",
+    say:["«Понимаю, что всё хорошо. Возможно, с нами будет ещё лучше, но это надо обсуждать на условиях. Один вопрос: как сейчас проходят платежи поставщикам — напрямую? [слушаем] Давайте сделаем так: 15 минут во вторник, я приеду»."],
+    opts:[["Да, встреча","meet"],["Нет","rNet"]]},
+  oNi:{label:"Не интересно", q:"Ответил по регламенту. Чем закончилось?",
+    say:["«Конечно. Я и не предлагаю — хотел понять, с какими задачами вы сталкиваетесь в расчётах с поставщиками, у нас в этом есть опыт. Подскажите, кто у вас за это отвечает, хотя бы имя?»"],
+    opts:[["Назвал ответственного","gdfd"],["Нет","rNet"]]},
+  oPeople:{label:"Есть люди", q:"Назвал имя ответственного?",
+    say:["«Уверен, у вас работают лучшие специалисты. Но всё быстро меняется: вчера мне нечего было вам предложить, сегодня условия такие, что вы сами захотите посмотреть. Скажите хотя бы имя этого человека, я с ним поделюсь»."],
+    opts:[["Да","gdfd"],["Нет","exits"]]},
+  sbros:{label:"СБРОС", end:{status:"Отказ",cls:"stop",tag:"СБРОС + дата перезвона",next:"Перезвон через 2 недели другим заходом: другой вопрос, другой контакт, другое время дня",
+    note:"Отказ относится к банку, а не к тебе лично.",go:[["Другой контакт в компании →","exits"]]}},
+
+  // ---------- Новый выход на компанию ----------
+  exits:{label:"Новый выход", q:"Кого пробуешь?",
+    say:["Статус — «Уточнить контакт», 7 рабочих дней на поиск. Цель — имя финансового директора и способ связи."],
+    opts:[["Общая линия","exLine","секретарь, приёмная"],["Сотрудник компании","exEmp","телефоны на сайте, почта по домену, LinkedIn"],["Дочерняя или связанная компания","exRel","финансовый блок часто общий"],["Собственник","exOwn","последний шаг цепочки"],["Повторный звонок ГД","exGd","через неделю, если контакт не найден"],["Всё перепробовал","holdEx"]]},
+  exLine:{label:"Общая линия", q:"Получил контакт ФД?",
+    say:["«Подскажите, как зовут вашего финансового директора? Мне нужно направить ему документы». При отказе в соединении — добавочный номер или почта."],
+    opts:[["Соединили с ФД","fd"],["Получил имя и контакт","gotContact"],["Нет","exits"]]},
+  exEmp:{label:"Сотрудник", q:"Получил контакт ФД?",
+    say:["«Я по вопросу расчётов с поставщиками. Подскажите, кто у вас этим занимается — как зовут, как лучше связаться?» Деталей сотруднику не сообщать. При звонке ФД сослаться на коллегу."],
+    opts:[["Да, дозвонился до ФД","fd"],["Получил имя и контакт","gotContact"],["Нет","exits"]]},
+  exRel:{label:"Связанная компания", q:"Получил контакт ФД?",
+    say:["Заходи через дочернюю или связанную компанию: там часто проще дозвониться, а финансовый блок общий. Структура группы — в карточке."],
+    opts:[["Да, дозвонился до ФД","fd"],["Получил имя и контакт","gotContact"],["Нет","exits"]]},
+  exOwn:{label:"Собственник", q:"Как прошёл разговор с собственником?",
+    say:["Последний шаг цепочки. Короткий и уважительный разговор с тем же фактом о компании. Собственник решает быстро — в любую сторону."],
+    opts:[["Готов обсуждать сам","lpr"],["Направил к ФД","gdfd"],["Отказ","lprNo"]]},
+  exGd:{label:"Повторно ГД", q:"Направил к ответственному?",
+    say:["«Добрый день, Иван Петрович. [Имя], [банк]. Прошу прощения, что снова беспокою. За неделю мне не удалось найти контакты ответственного лица — у вас хорошо выстроена защита информации. Наш банк предметно работает с компаниями вашего профиля. Прошу направить меня к ответственному сотруднику, чтобы больше вас не отвлекать»."],
+    opts:[["Да","gdfd"],["Нет","holdEx"]]},
+  gotContact:{label:"Контакт есть", end:{status:"Сделать холодный звонок",cls:"go",tag:"ФИО, должность, контакт + кто дал",next:"Звонок ФД в тот же или следующий день; сослаться на того, кто дал контакт",
+    go:[["Звоню ФД сейчас →","fd"]]}},
+  holdEx:{label:"ХОЛД", end:{status:"ХОЛД",cls:"wait",tag:"ХОЛД до ДД.ММ + что пробовали",next:"Дата возврата в календарь; ХОЛД не больше 90 дней",
+    note:"Повторный звонок ГД — последнее обращение перед ХОЛДом. ХОЛД без даты недопустим."}},
+
+  other:{label:"Другое", end:{status:"Оставить текущий статус",cls:"wait",tag:"по ситуации",next:"Записать в карточку, что произошло, и поставить следующий шаг с датой. Если непонятно, какой статус, — статус не менять, вопрос руководителю",
+    input:true, note:"Регламент: «При сомнении статус сохраняется, вопрос адресуется руководителю». У каждой активной карточки — следующий шаг и дата.",
+    go:[["Новый выход на компанию →","exits"]]}}
+};
+
+
+
+// ===================== Хранилище: облако Telegram, иначе браузер =====================
+const TG = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) ? Telegram.WebApp : null;
+const CS = TG && TG.CloudStorage && TG.isVersionAtLeast && TG.isVersionAtLeast("6.9") ? TG.CloudStorage : null;
+const mem = {};
+const store = {
+  keys(){ return new Promise(res => { if (CS) return CS.getKeys((e,k)=>res(e?[]:k||[]));
+    try { res(Object.keys(localStorage).filter(k=>k.startsWith("cx_")).map(k=>k.slice(3))); } catch { res(Object.keys(mem)); } }); },
+  get(keys){ return new Promise(res => { if (CS) return CS.getItems(keys,(e,v)=>res(e?{}:v||{}));
+    const o={}; for (const k of keys){ try { o[k]=localStorage.getItem("cx_"+k); } catch { o[k]=mem[k]; } } res(o); }); },
+  set(k,v){ return new Promise(res => { if (CS) return CS.setItem(k,v,()=>res());
+    try { localStorage.setItem("cx_"+k,v); } catch { mem[k]=v; } res(); }); },
+};
+let LEADS = {};               // inn -> lead
+const COOLDOWN_DAYS = 30;
+const HIST_MAX = 12;          // история обрезается, чтобы запись влезала в 4096 символов облака Telegram
+async function loadAll(){
+  const ks = (await store.keys()).filter(k=>k.startsWith("lead_"));
+  const vals = ks.length ? await store.get(ks) : {};
+  LEADS = {}; for (const k of ks){ try { const l = JSON.parse(vals[k]); if (l && l.inn) LEADS[l.inn]=l; } catch {} }
+}
+async function save(l){
+  l.hist = (l.hist||[]).slice(-HIST_MAX);
+  let s = JSON.stringify(l);
+  while (s.length > 4000 && l.hist.length > 1){ l.hist.shift(); s = JSON.stringify(l); }
+  LEADS[l.inn] = l; await store.set("lead_"+l.inn, s);
+}
+
+// ===================== Даты и формат =====================
+const today = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const addDays = (n, from) => { const d = from ? new Date(from+"T00:00:00") : today(); d.setDate(d.getDate()+n); return iso(d); };
+const ru = s => s ? s.slice(8,10)+"."+s.slice(5,7)+"."+s.slice(0,4) : "—";
+const phonesOf = l => (l.phones && l.phones.length) ? l.phones : (l.phone ? [l.phone] : []);
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const daysBetween = (a,b) => Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/864e5);
+function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2200); }
+async function copy(text){ try { await navigator.clipboard.writeText(text); toast("Скопировано"); }
+  catch { const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); toast("Скопировано");}catch{toast("Выдели текст и скопируй вручную");} ta.remove(); } }
+function openLink(u){ if (TG && TG.openLink) TG.openLink(u); else window.open(u,"_blank","noopener"); }
+function calUrl(l, date, what){
+  let d = date.replace(/-/g,""), d2 = addDays(1,date).replace(/-/g,"");
+  if (l.nextTime && date===l.next){ const [h,m]=l.nextTime.split(":").map(Number), e=new Date(date+"T00:00:00"); e.setHours(h,m+30);
+    const pad=n=>String(n).padStart(2,"0"); d = date.replace(/-/g,"")+"T"+pad(h)+pad(m)+"00";
+    d2 = iso(e).replace(/-/g,"")+"T"+pad(e.getHours())+pad(e.getMinutes())+"00"; }
+  const text = `${what}: ${l.name}`;
+  const details = [`ИНН ${l.inn}`, l.fio ? `${l.fio}${l.pos?", "+l.pos:""}` : "", l.tag ? `Тег: ${l.tag}` : "", ...(l.hooks||[]).map(h=>"Зацепка: "+h.t+(h.d?" ("+ru(h.d)+")":""))].filter(Boolean).join("\n");
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&dates=${d}/${d2}&details=${encodeURIComponent(details)}`;
+}
+
+// ===================== Исходы дерева: закрытие и срок по умолчанию =====================
+const CLOSE = {rKonk:"Отказ",rPul:"Отказ",rUsl:"Отказ",rNet:"Отказ",sbros:"Отказ",needOk:"Передан в сделку (КП)"};
+const DUE = {nd12:2,nd3:1,gdfdLater:1,gotContact:1,mailOnly:3,soft:7,needNo:7,termsNo:30,holdEx:30,hold:90,
+             rKonk:COOLDOWN_DAYS,rPul:COOLDOWN_DAYS,rUsl:COOLDOWN_DAYS,rNet:COOLDOWN_DAYS,sbros:COOLDOWN_DAYS,needOk:3};
+
+// ===================== Экраны =====================
+let TAB = "today", CUR = null, CALL = null;   // CALL: {inn, hist:[{id,theme}]}
+const main = document.getElementById("main");
+function setTab(t){ TAB=t; CUR=null; CALL=null; draw(); }
+const active = () => Object.values(LEADS).filter(l=>!l.closed);
+function leadBtn(l){
+  const due = l.next ? (l.next < iso(today()) ? `<span class="late">просрочено ${ru(l.next)}${l.nextTime?" "+l.nextTime:""}</span>` : `следующий шаг ${ru(l.next)}${l.nextTime?" в "+l.nextTime:""}`) : "дата не поставлена";
+  const hook = (l.hooks||[])[0];
+  return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
+    <span class="meta">${esc(l.fio||"")}${l.status?` · <span class="pill">${esc(l.status)}</span>`:""} · ${due}</span>
+    ${hook?`<div class="hookline">${esc(hook.t)}${hook.d?` · ${ru(hook.d)}`:""}</div>`:""}</button>`;
+}
+function drawToday(){
+  const t = iso(today());
+  const due = active().filter(l=>!l.next || l.next<=t).sort((a,b)=>((a.next||"")+(a.nextTime||"")).localeCompare((b.next||"")+(b.nextTime||"")));
+  const soon = active().filter(l=>l.next && l.next>t && l.next<=addDays(3)).sort((a,b)=>(a.next+(a.nextTime||"")).localeCompare(b.next+(b.nextTime||"")));
+  main.innerHTML = `<div class="card"><h2>Сегодня · ${ru(t)}</h2>
+    ${due.length?`<div class="list">${due.map(leadBtn).join("")}</div>`:`<p class="muted">На сегодня звонков нет. Добавь клиента кнопкой «+».</p>`}</div>
+    ${soon.length?`<div class="card"><h2>Ближайшие 3 дня</h2><div class="list">${soon.map(leadBtn).join("")}</div></div>`:""}`;
+}
+function drawLeads(arch){
+  const all = Object.values(LEADS).filter(l=>arch?!!l.closed:!l.closed).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+  main.innerHTML = `<div class="card"><h2>${arch?"Архив":"Клиенты в работе"} · ${all.length}</h2>
+    <input id="q" placeholder="Поиск по названию или ИНН" aria-label="Поиск">
+    <div class="list" id="ll" style="margin-top:10px">${all.map(arch?archBtn:leadBtn).join("")||`<p class="muted">${arch?"Закрытых клиентов пока нет.":"Пока пусто."}</p>`}</div></div>`;
+  document.getElementById("q").addEventListener("input", e=>{ const v=e.target.value.toLowerCase();
+    document.getElementById("ll").innerHTML = all.filter(l=>l.name.toLowerCase().includes(v)||l.inn.includes(v)).map(arch?archBtn:leadBtn).join(""); });
+}
+function archBtn(l){ const back = addDays(COOLDOWN_DAYS, l.closed.date);
+  return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
+    <span class="meta">${esc(l.closed.status)} · ${ru(l.closed.date)} · снова можно с ${ru(back)}</span>
+    <div class="hookline">Итог: ${esc(l.closed.reason)}</div></button>`; }
+function drawAdd(msg){
+  main.innerHTML = `<div class="card"><h2>Новый клиент</h2>
+    <form id="addf">
+      <label for="f_inn">ИНН</label><input id="f_inn" inputmode="numeric" required pattern="\\d{10}|\\d{12}" placeholder="10 или 12 цифр">
+      <label for="f_name">Компания</label><input id="f_name" required placeholder="ООО «Пример»">
+      <label for="f_fio">ФИО</label><input id="f_fio" placeholder="Иванов Иван Петрович">
+      <label for="f_pos">Должность</label><input id="f_pos" placeholder="Генеральный директор">
+      <label>Телефоны</label><div id="phs"><input class="ph" inputmode="tel" placeholder="8 900 000-00-00" aria-label="Телефон"></div>
+      <button class="btn ghost" type="button" id="addph">+ ещё телефон</button>
+      <label for="f_hook">Зацепка (необязательно)</label><input id="f_hook" placeholder="Например: импорт из Китая, выручка выросла вдвое">
+      <h3>Если клиент уже в работе</h3>
+      <label for="f_st">Текущий статус</label>
+      <select id="f_st"><option>Новый</option><option>Сделать холодный звонок</option><option>Уточнить контакт</option><option>Назначен 2-й звонок</option><option>Назначена встреча</option><option>Назначена видео-встреча</option><option>Отправить КП</option><option>ХОЛД</option></select>
+      <label for="f_nw">Следующий шаг</label><input id="f_nw" placeholder="Например: перезвонить по итогам письма">
+      <label for="f_nd">Дата следующего шага</label><input id="f_nd" type="date">
+      <label for="f_nt">Время звонка</label><input id="f_nt" type="time">
+      <label for="f_hc">Что уже было (необязательно)</label><textarea id="f_hc" rows="3" placeholder="Кто, что сказал, о чём договорились"></textarea>
+      <div class="row" style="margin-top:14px"><button class="btn primary" type="submit">Добавить</button></div>
+    </form>${msg?`<div class="err">${msg}</div>`:""}</div>`;
+  document.getElementById("addph").onclick=()=>{ const i=document.createElement("input"); i.className="ph"; i.inputMode="tel"; i.placeholder="Ещё номер"; i.setAttribute("aria-label","Телефон"); i.style.marginTop="6px"; document.getElementById("phs").appendChild(i); i.focus(); };
+  document.getElementById("addf").addEventListener("submit", async e=>{ e.preventDefault();
+    const v = id => document.getElementById(id).value.trim();
+    const inn = v("f_inn").replace(/\D/g,"");
+    if (!/^(\d{10}|\d{12})$/.test(inn)) return drawAdd("ИНН — 10 цифр для компании или 12 для ИП.");
+    const ex = LEADS[inn];
+    if (ex && !ex.closed) return drawAdd(`Клиент уже в работе: <b>${esc(ex.name)}</b>. Открой его во вкладке «Клиенты».`);
+    if (ex && ex.closed){ const back = addDays(COOLDOWN_DAYS, ex.closed.date);
+      if (iso(today()) < back) return drawAdd(`Клиент <b>${esc(ex.name)}</b> закрыт ${ru(ex.closed.date)} («${esc(ex.closed.reason)}»). Добавить снова можно с ${ru(back)}.`); }
+    const l = ex || {inn, created: iso(today()), hist: []};
+    Object.assign(l, {name:v("f_name"), fio:v("f_fio"), pos:v("f_pos"), phones:[...document.querySelectorAll(".ph")].map(i=>i.value.trim()).filter(Boolean), phone:undefined, status:v("f_st")==="Новый"?"Новый клиент":v("f_st"), tag:"", next: v("f_nd")||iso(today()), nextWhat:v("f_nw"), nextTime:v("f_nd")?v("f_nt"):"", closed:null});
+    l.hooks = v("f_hook") ? [{t:v("f_hook"), d:""}] : (l.hooks||[]);
+    if (v("f_hc")) l.hist.push({d:iso(today()), st:"Занесено в Callex", c:v("f_hc")});
+    if (ex) l.hist.push({d:iso(today()), st:"Возврат в работу", c:`после закрытия ${ru(ex.closed.date)}: ${ex.closed.reason}`});
+    await save(l); toast("Клиент добавлен"); CUR=inn; TAB="leads"; draw(); });
+}
+function expText(l, last){
+  return `${last.tag?last.tag+". ":""}${last.c||last.st}. Следующий шаг: ${l.nextWhat||"—"}${l.next?" — "+ru(l.next)+(l.nextTime?" "+l.nextTime:""):""}.`;
+}
+function drawLead(inn){
+  const l = LEADS[inn]; if (!l) return setTab("leads");
+  const last = (l.hist||[]).slice(-1)[0];
+  const t = iso(today());
+  const hookNow = (l.hooks||[]).filter(h=>h.d && h.d<=t);
+  main.innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between"><button class="btn ghost" data-back type="button">← Назад</button>${l.closed?`<span class="pill st-stop">${esc(l.closed.status)}</span>`:`<span class="pill">${esc(l.status||"")}</span>`}</div>
+    <h2 style="margin-top:6px">${esc(l.name)}</h2>
+    <dl class="kv"><dt>ИНН</dt><dd>${esc(l.inn)}</dd><dt>Контакт</dt><dd>${esc(l.fio||"—")}${l.pos?`, ${esc(l.pos)}`:""}</dd>
+      <dt>Телефоны</dt><dd>${phonesOf(l).map((ph,i)=>`<div><span>${esc(ph)}</span> <button class="btn ghost small" data-copy="${esc(ph)}" type="button">копировать</button><button class="btn ghost small" data-delph="${i}" type="button">убрать</button></div>`).join("")||"—"}${l.closed?"":`<form id="phf" class="row" style="margin-top:6px"><input id="p_new" inputmode="tel" placeholder="Добавить номер" style="flex:1;min-width:140px" aria-label="Новый телефон"><button class="btn" type="submit">+</button></form>`}</dd>
+      <dt>Тег</dt><dd>${esc(l.tag||"—")}</dd><dt>Следующий шаг</dt><dd>${esc(l.nextWhat||"—")}${l.next?` · <b${l.next<t?' class="late"':""}>${ru(l.next)}${l.nextTime?" в "+l.nextTime:""}</b>`:""}</dd></dl>
+    ${l.closed?`<div class="err"><b>Итог:</b> ${esc(l.closed.reason)}<br>Закрыт ${ru(l.closed.date)}. Добавить снова можно с ${ru(addDays(COOLDOWN_DAYS,l.closed.date))}.</div>`:""}
+    <h3>Зацепки</h3>
+    ${hookNow.length?`<div class="say"><b>Спроси на звонке</b>${hookNow.map(h=>`<p>«Как прошло: ${esc(h.t.toLowerCase())}? Вы говорили об этом в прошлый раз».</p>`).join("")}</div>`:""}
+    <div class="list">${(l.hooks||[]).map((h,i)=>`<div class="hookline row" style="justify-content:space-between"><span>${esc(h.t)}${h.d?` · ${ru(h.d)}`:""}</span><button class="btn ghost small" data-delhook="${i}" type="button">убрать</button></div>`).join("")||`<p class="muted small">Что клиент сказал и за что зацепиться в следующий раз: встреча, переговоры, выставка, отпуск ГД.</p>`}</div>
+    ${l.closed?"":`<form id="hookf" class="row" style="margin-top:8px"><input id="h_t" placeholder="Новая зацепка" style="flex:2;min-width:160px" aria-label="Новая зацепка"><input id="h_d" type="date" style="flex:1;min-width:130px" aria-label="Дата события"><button class="btn" type="submit">Добавить</button></form>`}
+    <div class="row" style="margin-top:16px">
+      ${l.closed?"":`<button class="btn primary" data-call type="button">Начать звонок</button>`}
+      ${last?`<button class="btn" data-exp type="button">Скопировать итог</button>`:""}
+      ${l.next?`<button class="btn" data-cal type="button">В календарь</button>`:""}
+    </div>
+    <h3>История</h3>
+    <div class="hist">${(l.hist||[]).slice().reverse().map(h=>`<div><b>${ru(h.d)}</b> · ${esc(h.st)}${h.tag?` · ${esc(h.tag)}`:""}<br><span class="muted">${esc(h.c||"")}</span></div>`).join("")||`<p class="muted small">Звонков ещё не было.</p>`}</div>
+  </div>`;
+  main.querySelectorAll("[data-delhook]").forEach(b=>b.onclick=async()=>{ l.hooks.splice(+b.dataset.delhook,1); await save(l); drawLead(inn); });
+  main.querySelectorAll("[data-delph]").forEach(b=>b.onclick=async()=>{ const a=phonesOf(l).slice(); a.splice(+b.dataset.delph,1); l.phones=a; delete l.phone; await save(l); drawLead(inn); });
+  const pf=document.getElementById("phf"); if(pf) pf.onsubmit=async e=>{ e.preventDefault(); const v=document.getElementById("p_new").value.trim(); if(!v) return; l.phones=phonesOf(l).concat(v); delete l.phone; await save(l); drawLead(inn); };
+  const hf=document.getElementById("hookf"); if(hf) hf.onsubmit=async e=>{ e.preventDefault(); const t=document.getElementById("h_t").value.trim(); if(!t) return;
+    l.hooks=(l.hooks||[]); l.hooks.unshift({t, d:document.getElementById("h_d").value}); await save(l); drawLead(inn); };
+  const cb=main.querySelector("[data-call]"); if(cb) cb.onclick=()=>{ CALL={inn, hist:[{id:"start",theme:l.theme||null}]}; draw(); };
+  const eb=main.querySelector("[data-exp]"); if(eb) eb.onclick=()=>copy(expText(l,last));
+  const kb=main.querySelector("[data-cal]"); if(kb) kb.onclick=()=>openLink(calUrl(l,l.next,l.closed?"Перезвон после закрытия":(l.nextWhat||"Звонок")));
+}
+
+// ===================== Звонок: дерево внутри карточки =====================
+function lineHtml(x){
+  if (x && typeof x === "object" && x.own) return `<p class="own">${esc(x.own)}</p>`;
+  const s = R(x); if (!s) return "";
+  if (s.startsWith("адаптация:")) return `<p class="own">${esc(s.slice(10))}</p>`;
+  return `<p>${esc(s)}</p>`;
+}
+const sayH = (arr,title) => arr&&arr.length ? `<div class="say"><b>${title}</b>${arr.map(lineHtml).join("")}</div>` : "";
+const optH = (t,nx,sub,th,cls) => `<button class="opt ${cls||""}" type="button" data-next="${nx}"${th?` data-theme="${th}"`:""}>${esc(t)}${sub?`<small>${esc(sub)}</small>`:""}</button>`;
+function drawCall(){
+  const l = LEADS[CALL.inn], cur = CALL.hist[CALL.hist.length-1]; theme = cur.theme; const n = N[cur.id];
+  const hooks = (l.hooks||[]).slice(0,3);
+  let body;
+  if (n.end){
+    const e = n.end, closing = CLOSE[cur.id], due = DUE[cur.id];
+    body = `<p class="small muted" style="margin:0 0 6px">Итог звонка</p>
+      <dl class="kv"><dt>Статус</dt><dd><span class="pill ${e.cls==="go"?"st-go":e.cls==="stop"?"st-stop":"st-wait"}">${esc(closing||e.status)}</span></dd>
+      <dt>Тег</dt><dd>${esc(e.tag)}</dd><dt>Следующий шаг</dt><dd>${esc(e.next)}</dd></dl>
+      ${sayH(e.say,"Что сказать / написать")}${e.note?`<p class="small muted">${esc(e.note)}</p>`:""}
+      <form id="savef">
+        <label for="s_c">Комментарий для карточки</label><textarea id="s_c" rows="3" placeholder="Как для коллеги: кто, что сказал, о чём договорились"></textarea>
+        <label for="s_tag">Тег</label><input id="s_tag" value="${esc(e.tag.split(" ")[0]==="—"?"":e.tag.split(" ")[0])}">
+        ${closing?`<label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="Например: КОНК — работают со Сбером, всё устраивает">
+          <p class="small muted">Клиент уйдёт в архив. Добавить снова можно через ${COOLDOWN_DAYS} дней — на эту дату можно поставить перезвон в календарь.</p>`:""}
+        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага"}</label><input id="s_next" type="date" value="${due!=null?addDays(due):""}" ${closing?"":"required"}>
+        <label for="s_nt">Время звонка</label><input id="s_nt" type="time">
+        <label for="s_hook">Зацепка на следующий звонок (необязательно)</label><input id="s_hook" placeholder="Например: 25.10 у них выставка">
+        <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Сохранить в карточку</button></div>
+      </form>
+      ${e.go?`<h3>Или продолжить</h3><div class="opts">${e.go.map(([t,nx])=>optH(t,nx,"","","go")).join("")}</div>`:""}`;
+  } else {
+    const opts = cur.id==="start" ? n.opts : n.opts.concat([["Другое","other"]]);
+    body = `<p class="q">${esc(n.q)}</p>${sayH(n.say,"Как говорить")}<div class="opts">${opts.map(([t,nx,sub,th])=>optH(t,nx,sub,th)).join("")}</div>`;
+  }
+  main.innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between"><button class="btn ghost" data-callback type="button">← ${CALL.hist.length>1?"Шаг назад":"К карточке"}</button><span class="small muted">${theme?esc(THEMES[theme].name):""}</span></div>
+    <h2 style="margin:4px 0 2px">${esc(l.name)}</h2><p class="small muted" style="margin:0 0 10px">${esc(l.fio||"")}${phonesOf(l).length?` · ${phonesOf(l).map(esc).join(" · ")}`:""}</p>
+    ${hooks.length?`<div class="list" style="margin-bottom:10px">${hooks.map(h=>`<div class="hookline">${esc(h.t)}${h.d?` · ${ru(h.d)}`:""}</div>`).join("")}</div>`:""}
+    <div class="path">${CALL.hist.map(h=>esc(N[h.id].label)).join(" › ")}</div>
+    ${body}</div>`;
+  const sf = document.getElementById("savef");
+  if (sf) sf.onsubmit = async ev => { ev.preventDefault();
+    const g = id => (document.getElementById(id)||{}).value?.trim?.() ?? "";
+    const e = n.end, closing = CLOSE[cur.id];
+    l.theme = theme || l.theme; l.tag = g("s_tag"); l.status = closing || e.status;
+    const entry = {d:iso(today()), st:l.status, tag:l.tag, c:g("s_c")};
+    if (g("s_hook")) { l.hooks = l.hooks||[]; l.hooks.unshift({t:g("s_hook"), d:""}); }
+    if (closing){ if(!g("s_reason")) return toast("Заполни итог по клиенту");
+      l.closed = {status:closing, reason:g("s_reason"), date:iso(today())}; entry.c = (entry.c?entry.c+" · ":"")+"Итог: "+g("s_reason");
+      l.next = g("s_next") || addDays(COOLDOWN_DAYS); l.nextTime = g("s_nt"); l.nextWhat = "перезвон после закрытия"; }
+    else { l.next = g("s_next"); l.nextTime = g("s_nt"); l.nextWhat = e.next; }
+    l.hist = l.hist||[]; l.hist.push(entry); await save(l);
+    toast(closing?"Клиент закрыт и перенесён в архив":"Сохранено"); CALL=null; CUR=l.inn; draw(); };
+}
+
+// ===================== Навигация =====================
+function draw(){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current", String(b.dataset.tab===TAB && !CALL)));
+  if (CALL) return drawCall();
+  if (CUR) return drawLead(CUR);
+  ({today:drawToday, leads:()=>drawLeads(false), add:()=>drawAdd(), archive:()=>drawLeads(true)})[TAB]();
+  window.scrollTo(0,0);
+}
+document.addEventListener("click", ev=>{
+  const tb = ev.target.closest(".tab"); if (tb) return setTab(tb.dataset.tab);
+  const op = ev.target.closest("[data-open]"); if (op) { CUR = op.dataset.open; CALL=null; return draw(); }
+  if (ev.target.closest("[data-back]")) { CUR=null; return draw(); }
+  const cp = ev.target.closest("[data-copy]"); if (cp) return copy(cp.dataset.copy);
+  if (CALL){
+    const nx = ev.target.closest("[data-next]");
+    if (nx){ const th = nx.dataset.theme || CALL.hist[CALL.hist.length-1].theme; CALL.hist.push({id:nx.dataset.next, theme:th}); drawCall(); window.scrollTo(0,0); return; }
+    if (ev.target.closest("[data-callback]")){ if (CALL.hist.length>1){ CALL.hist.pop(); drawCall(); } else { CALL=null; draw(); } }
+  }
+});
+(async()=>{
+  if (TG){ try{TG.setHeaderColor("#080f14");TG.setBackgroundColor("#080f14");}catch{} TG.ready(); TG.expand(); const u = TG.initDataUnsafe && TG.initDataUnsafe.user; if (u) document.getElementById("who").textContent = u.first_name || ""; }
+  else document.getElementById("demo").hidden = false;
+  await loadAll(); draw();
+})();
+</script>
