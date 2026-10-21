@@ -89,7 +89,7 @@ select{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xml
 <div class="app">
   <div class="top"><h1>Call<span>ex</span></h1><small id="who"></small></div>
   <main id="main"></main>
-  <p class="demo" id="ver">версия 13 · 21.10 20:50</p>
+  <p class="demo" id="ver">версия 14 · 21.10 21:00</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in">
@@ -462,8 +462,8 @@ function drawAdd(msg){
       <label for="f_st">Текущий статус</label>
       <select id="f_st"><option>Новый</option><option>Сделать холодный звонок</option><option>Уточнить контакт</option><option>Назначен 2-й звонок</option><option>Назначена встреча</option><option>Назначена видео-встреча</option><option>Отправить КП</option><option>ХОЛД</option></select>
       <label for="f_nw">Следующий шаг</label><input id="f_nw" placeholder="Например: перезвонить по итогам письма">
-      <label for="f_nd">Дата следующего шага (необязательно)</label><input id="f_nd" type="date">
-      <label for="f_nt">Время звонка (необязательно)</label><input id="f_nt" type="time">
+      <label for="f_nd">Дата следующего шага (необязательно)</label><input id="f_nd" type="date"><button class="btn ghost small" type="button" data-clear="f_nd">очистить</button>
+      <label for="f_nt">Время звонка (необязательно)</label><input id="f_nt" type="time"><button class="btn ghost small" type="button" data-clear="f_nt">очистить</button>
       <label for="f_hc">Что уже было (необязательно)</label><textarea id="f_hc" rows="3" placeholder="Кто, что сказал, о чём договорились"></textarea>
       <div class="row" style="margin-top:14px"><button class="btn primary" type="submit">Добавить</button></div>
     </form>${msg?`<div class="err">${msg}</div>`:""}</div>`;
@@ -545,8 +545,8 @@ function drawCall(){
         <label for="s_tag">Тег</label><input id="s_tag" value="${esc(e.tag.split(" ")[0]==="—"?"":e.tag.split(" ")[0])}">
         ${closing?`<label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="Например: КОНК — работают со Сбером, всё устраивает">
           <p class="small muted">Клиент уйдёт в архив. Добавить снова можно через ${COOLDOWN_DAYS} дней — на эту дату можно поставить перезвон в календарь.</p>`:""}
-        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага (необязательно)"}</label><input id="s_next" type="date" value="${due!=null?addDays(due):""}">
-        <label for="s_nt">Время звонка (необязательно)</label><input id="s_nt" type="time">
+        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага (необязательно)"}</label><input id="s_next" type="date" value="${due!=null?addDays(due):""}"><button class="btn ghost small" type="button" data-clear="s_next">очистить</button>
+        <label for="s_nt">Время звонка (необязательно)</label><input id="s_nt" type="time"><button class="btn ghost small" type="button" data-clear="s_nt">очистить</button>
         <label for="s_hook">Зацепка на следующий звонок (необязательно)</label><input id="s_hook" placeholder="Например: 25.10 у них выставка">
         <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Сохранить в карточку</button></div>
       </form>
@@ -585,6 +585,7 @@ function draw(){
   window.scrollTo(0,0);
 }
 document.addEventListener("click", ev=>{
+  const cl = ev.target.closest("[data-clear]"); if (cl){ const el=document.getElementById(cl.dataset.clear); if(el){ el.value=""; el.dispatchEvent(new Event("input",{bubbles:true})); } return; }
   const tb = ev.target.closest(".tab"); if (tb) return setTab(tb.dataset.tab);
   const op = ev.target.closest("[data-open]"); if (op) { CUR = op.dataset.open; CALL=null; return draw(); }
   if (ev.target.closest("[data-back]")) { CUR=null; return draw(); }
