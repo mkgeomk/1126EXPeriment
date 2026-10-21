@@ -22,7 +22,7 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
-  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:14px 96px}
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:14px calc(150px + env(safe-area-inset-bottom,0px))}
 .app{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .top h1{font:700 22px/1.2 var(--body);margin:0;letter-spacing:-.01em}
