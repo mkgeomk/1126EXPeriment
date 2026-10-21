@@ -47,8 +47,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10p
 input,textarea,select{width:100%;max-width:100%;min-width:0;font:15px/1.4 var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--zebra);color:var(--fg)}
 textarea{resize:vertical}
 input,select{height:46px;-webkit-appearance:none;appearance:none}
-input[type="date"],input[type="time"]{display:block;text-align:left}
-input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
+input[type="date" min="2020-01-01" max="2100-12-31"],input[type="time"]{display:block;text-align:left}
+input[type="date" min="2020-01-01" max="2100-12-31"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
 select{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' fill='none' stroke='%238a9aa5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
 .app::after{content:"";display:block;flex:none;height:calc(70px + env(safe-area-inset-bottom,0px))}
 .btn{font:600 14px var(--body);border:0;border-radius:999px;padding:10px 16px;cursor:pointer;background:var(--zebra);color:var(--fg)}
@@ -89,7 +89,7 @@ select{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xml
 <div class="app">
   <div class="top"><h1>Call<span>ex</span></h1><small id="who"></small></div>
   <main id="main"></main>
-  <p class="demo" id="ver">версия 14 · 21.10 21:00</p>
+  <p class="demo" id="ver">версия 15 · 21.10 21:10</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in">
@@ -462,7 +462,7 @@ function drawAdd(msg){
       <label for="f_st">Текущий статус</label>
       <select id="f_st"><option>Новый</option><option>Сделать холодный звонок</option><option>Уточнить контакт</option><option>Назначен 2-й звонок</option><option>Назначена встреча</option><option>Назначена видео-встреча</option><option>Отправить КП</option><option>ХОЛД</option></select>
       <label for="f_nw">Следующий шаг</label><input id="f_nw" placeholder="Например: перезвонить по итогам письма">
-      <label for="f_nd">Дата следующего шага (необязательно)</label><input id="f_nd" type="date"><button class="btn ghost small" type="button" data-clear="f_nd">очистить</button>
+      <label for="f_nd">Дата следующего шага (необязательно)</label><input id="f_nd" type="date" min="2020-01-01" max="2100-12-31"><button class="btn ghost small" type="button" data-clear="f_nd">очистить</button>
       <label for="f_nt">Время звонка (необязательно)</label><input id="f_nt" type="time"><button class="btn ghost small" type="button" data-clear="f_nt">очистить</button>
       <label for="f_hc">Что уже было (необязательно)</label><textarea id="f_hc" rows="3" placeholder="Кто, что сказал, о чём договорились"></textarea>
       <div class="row" style="margin-top:14px"><button class="btn primary" type="submit">Добавить</button></div>
@@ -502,7 +502,7 @@ function drawLead(inn){
     <h3>Зацепки</h3>
     ${hookNow.length?`<div class="say"><b>Спроси на звонке</b>${hookNow.map(h=>`<p>«Как прошло: ${esc(h.t.toLowerCase())}? Вы говорили об этом в прошлый раз».</p>`).join("")}</div>`:""}
     <div class="list">${(l.hooks||[]).map((h,i)=>`<div class="hookline row" style="justify-content:space-between"><span>${esc(h.t)}${h.d?` · ${ru(h.d)}`:""}</span><button class="btn ghost small" data-delhook="${i}" type="button">убрать</button></div>`).join("")||`<p class="muted small">Что клиент сказал и за что зацепиться в следующий раз: встреча, переговоры, выставка, отпуск ГД.</p>`}</div>
-    ${l.closed?"":`<form id="hookf" class="row" style="margin-top:8px"><input id="h_t" placeholder="Новая зацепка" style="flex:2;min-width:160px" aria-label="Новая зацепка"><input id="h_d" type="date" style="flex:1;min-width:130px" aria-label="Дата события"><button class="btn" type="submit">Добавить</button></form>`}
+    ${l.closed?"":`<form id="hookf" class="row" style="margin-top:8px"><input id="h_t" placeholder="Новая зацепка" style="flex:2;min-width:160px" aria-label="Новая зацепка"><input id="h_d" type="date" min="2020-01-01" max="2100-12-31" style="flex:1;min-width:130px" aria-label="Дата события"><button class="btn" type="submit">Добавить</button></form>`}
     <div class="row" style="margin-top:16px">
       ${l.closed?"":`<button class="btn primary" data-call type="button">Начать звонок</button>`}
       ${last?`<button class="btn" data-exp type="button">Скопировать итог</button>`:""}
@@ -545,7 +545,7 @@ function drawCall(){
         <label for="s_tag">Тег</label><input id="s_tag" value="${esc(e.tag.split(" ")[0]==="—"?"":e.tag.split(" ")[0])}">
         ${closing?`<label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="Например: КОНК — работают со Сбером, всё устраивает">
           <p class="small muted">Клиент уйдёт в архив. Добавить снова можно через ${COOLDOWN_DAYS} дней — на эту дату можно поставить перезвон в календарь.</p>`:""}
-        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага (необязательно)"}</label><input id="s_next" type="date" value="${due!=null?addDays(due):""}"><button class="btn ghost small" type="button" data-clear="s_next">очистить</button>
+        <label for="s_next">${closing?"Дата перезвона (для календаря)":"Дата следующего шага (необязательно)"}</label><input id="s_next" type="date" min="2020-01-01" max="2100-12-31" value="${due!=null?addDays(due):""}"><button class="btn ghost small" type="button" data-clear="s_next">очистить</button>
         <label for="s_nt">Время звонка (необязательно)</label><input id="s_nt" type="time"><button class="btn ghost small" type="button" data-clear="s_nt">очистить</button>
         <label for="s_hook">Зацепка на следующий звонок (необязательно)</label><input id="s_hook" placeholder="Например: 25.10 у них выставка">
         <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Сохранить в карточку</button></div>
@@ -584,6 +584,8 @@ function draw(){
   ({today:drawToday, leads:()=>drawLeads(false), add:()=>drawAdd(), archive:()=>drawLeads(true)})[TAB]();
   window.scrollTo(0,0);
 }
+document.addEventListener("input", ev=>{ const el=ev.target;   // год больше 2100 (или нелепый) — сбрасываем
+  if (el && el.type==="date" && el.value && el.value>"2100-12-31"){ el.value=""; toast("Год не больше 2100"); } });
 document.addEventListener("click", ev=>{
   const cl = ev.target.closest("[data-clear]"); if (cl){ const el=document.getElementById(cl.dataset.clear); if(el){ el.value=""; el.dispatchEvent(new Event("input",{bubbles:true})); } return; }
   const tb = ev.target.closest(".tab"); if (tb) return setTab(tb.dataset.tab);
