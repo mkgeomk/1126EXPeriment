@@ -21,9 +21,9 @@
   --petrol:#9fd0e6; --orange:#f39a4a; --orange-soft:#261c12; --zebra:#15232e; --own:#13293a;
   --ok:#6fcf93; --warn:#f0a85a; --stop:#f07c70; color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{min-height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
-  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:14px calc(150px + env(safe-area-inset-bottom,0px))}
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:14px 24px}
 .app{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .top h1{font:700 22px/1.2 var(--body);margin:0;letter-spacing:-.01em}
@@ -44,8 +44,13 @@ h3{font:600 12px var(--body);letter-spacing:.07em;text-transform:uppercase;color
 .st-go{color:var(--ok)} .st-wait{color:var(--warn)} .st-stop{color:var(--stop)}
 .late{color:var(--stop);font-weight:600}
 label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
-input,textarea,select{width:100%;font:15px/1.4 var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--zebra);color:var(--fg)}
+input,textarea,select{width:100%;max-width:100%;min-width:0;font:15px/1.4 var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--zebra);color:var(--fg)}
 textarea{resize:vertical}
+input,select{height:46px;-webkit-appearance:none;appearance:none}
+input[type="date"],input[type="time"]{display:block;text-align:left}
+input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
+select{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' fill='none' stroke='%238a9aa5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
+.app::after{content:"";display:block;flex:none;height:calc(70px + env(safe-area-inset-bottom,0px))}
 .btn{font:600 14px var(--body);border:0;border-radius:999px;padding:10px 16px;cursor:pointer;background:var(--zebra);color:var(--fg)}
 .btn.primary{background:var(--orange);color:#1a1006}
 .btn.ghost{background:none;padding:6px 8px;color:var(--muted)}
@@ -84,6 +89,7 @@ textarea{resize:vertical}
 <div class="app">
   <div class="top"><h1>Call<span>ex</span></h1><small id="who"></small></div>
   <main id="main"></main>
+  <p class="demo" id="ver">версия 13 · 21.10 20:50</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in">
