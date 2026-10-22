@@ -209,7 +209,7 @@ body.deep .demo{display:none}
 </style>
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 17 · 22.10 13:30</p>
+  <p class="demo" id="ver">версия 17 · 22.10 14:10</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -501,17 +501,18 @@ function importRows(all){
 async function runImport(src,dry,prog){
   const r = typeof src==="string" ? importList(src) : importRows(src); if (r.err) return r;
   let added=0, dup=0, upd=0, bad=0; const seen=new Set(), todo=[];
-  for (const row of r.rows){
+  const ORD0=Date.now()*1000; let ri=0;
+  for (const row of r.rows){ ri++;
     const inn=(row[r.iInn]||"").replace(/\D/g,""), name=(row[r.iName]||"").trim();
     if (!/^(\d{10}|\d{12})$/.test(inn) || !name){ bad++; continue; }
-    const ex = {};
+    const ex = {ord:ORD0+ri};
     if (r.iRev>=0){ const v=numFrom(row[r.iRev]); if (v!=null) ex.rev=v*r.uRev; }
     if (r.iImp>=0){ const v=numFrom(row[r.iImp]); if (v!=null) ex.imp=v*r.uImp; }
     if (r.iExp>=0){ const v=numFrom(row[r.iExp]); if (v!=null) ex.exp=v*r.uExp; }
     if (r.iReg>=0){ const g=String(row[r.iReg]||"").trim(); if (g && !/^(москва|московская)/i.test(g)) ex.reg=g; }
     if(seen.has(inn)){dup++;continue;} seen.add(inn);
     const old = LEADS[inn];
-    if (old){ let ch=false; for (const k of ["rev","imp","exp","reg"]) if (ex[k]!==undefined && old[k]===undefined){ if(!dry) old[k]=ex[k]; ch=true; }
+    if (old){ let ch=false; for (const k of ["rev","imp","exp","reg","ord"]) if (ex[k]!==undefined && old[k]===undefined){ if(!dry) old[k]=ex[k]; ch=true; }
       if (ch){ if(!dry) todo.push(old); upd++; } else dup++; continue; }
     const phones=[]; r.iPh.forEach(i=>phonesFrom(row[i]).forEach(p=>{ if(!phones.includes(p)) phones.push(p); }));
     if(dry){ added++; continue; }
@@ -588,10 +589,11 @@ function selBar(){const n=SEL?SEL.size:0,allOn=SELVIS.length&&SELVIS.every(x=>SE
   return `<div class="bar" id="selbar"><button class="gbtn" type="button" data-selcancel style="flex:1">Готово</button><button class="gbtn" type="button" data-selall style="flex:1">${allOn?"Снять все":"Выбрать все"}</button><button class="btn${n?"":" dis"}" type="button" data-seldel style="flex:1.3;background:var(--bad);color:#fff;height:44px;font-size:15px">Удалить${n?" ("+n+")":""}</button></div>`;}
 function updSelBar(){const b=document.getElementById("selbar");if(b)b.outerHTML=selBar();}
 
-const SORTS=[["long","Дольше всех"],["alpha","По алфавиту"],["rev","По выручке"],["imp","По импорту"],["exp","По экспорту"]];
-let SORT_NEW="long",SORT_CL="alpha";
+const SORTS=[["added","Как добавили"],["long","Дольше всех"],["alpha","По алфавиту"],["rev","По выручке"],["imp","По импорту"],["exp","По экспорту"]];
+let SORT_NEW="added",SORT_CL="added";
 function sortLeads(a,k){const arr=a.slice();
   if(k==="alpha")return arr.sort(byName);
+  if(k==="added")return arr.sort((x,y)=>{const hx=typeof x.ord==="number",hy=typeof y.ord==="number";if(hx!==hy)return hx?-1:1;return hx?(x.ord-y.ord):((x.created||"").localeCompare(y.created||"")||byName(x,y));});
   if(k==="long")return arr.sort((x,y)=>(x.created||"").localeCompare(y.created||"")||byName(x,y));
   const ok=l=>typeof l[k]==="number"&&l[k]>=0.005;
   return arr.sort((x,y)=>{const a1=ok(x),b1=ok(y);if(a1!==b1)return a1?-1:1;return((y[k]||0)-(x[k]||0))||byName(x,y);});}
@@ -937,6 +939,7 @@ function drawAdd(msg){
     l.hooks=v("f_hook")?[{t:v("f_hook"),d:""}]:(l.hooks||[]);
     if(v("f_hc"))l.hist.push({d:iso(today()),st:"Занесено в Callex",c:v("f_hc")});
     if(ex)l.hist.push({d:iso(today()),st:"Возврат в работу",c:`после закрытия ${ru(ex.closed.date)}: ${ex.closed.reason}`});
+    if(typeof l.ord!=="number")l.ord=Date.now()*1000;
     await save(l);toast("Клиент добавлен");CUR=inn;TAB="leads";draw();});
 }
 function drawImport(){
@@ -996,6 +999,11 @@ function pickList(q){const d=todayData(),seen=new Set(),out=[];
   return {r:r.slice(0,40),all:r.length};}
 function pickRows(q){const {r,all}=pickList(q),t=iso(today());
   return (r.map(l=>`<button class="opt" type="button" data-startcall="${esc(l.inn)}"><span>${esc(shortName(l.name))}<small>${esc([isNew(l)?"новый":(l.next?(l.next<t?"просрочен · ":"")+whenTxt(l):"без даты"),fioShort(l.fio)].filter(Boolean).join(" · "))}</small></span>${IC.chev}</button>`).join("")||`<p class="mut pad">Никого не нашли.</p>`)+(all>r.length?`<p class="mut pad">Показаны первые ${r.length} из ${all}. Уточни поиск.</p>`:"");}
+// сохраняет прокрутку рядов чипов и показывает выбранный чип целиком
+function kc(fn){const old=[...document.querySelectorAll(".chips")].map(c=>c.scrollLeft);fn();
+  document.querySelectorAll(".chips").forEach((c,i)=>{if(old[i])c.scrollLeft=old[i];const on=c.querySelector(".on");if(!on)return;
+    const cr=c.getBoundingClientRect(),r=on.getBoundingClientRect();
+    if(r.left<cr.left)c.scrollLeft-=(cr.left-r.left)+14;else if(r.right>cr.right)c.scrollLeft+=(r.right-cr.right)+14;});}
 function startNext(){closeOv();
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Кому звоним?</b><small>Выбери клиента или добавь нового</small></div></div>
@@ -1042,11 +1050,11 @@ document.addEventListener("click",ev=>{
   if(c("[data-addclose]")){ADDMODE="one";IMP=null;return setTab("today");}
   const am=c("[data-addmode]");if(am){ADDMODE=am.dataset.addmode;IMP=null;return drawAdd();}
   const sg=c("[data-seg]");if(sg){SEG=sg.dataset.seg;QTXT="";return drawToday();}
-  const fl=c("[data-filt]");if(fl){FILT=fl.dataset.filt;SEG="calls";QTXT="";return drawToday();}
-  const sn=c("[data-sortnew]");if(sn){SORT_NEW=sn.dataset.sortnew;return fillToday();}
-  if(c("[data-newall]")){NEW_ALL=!NEW_ALL;return fillToday();}
-  const cc=c("[data-chipcl]");if(cc){FILT_CL=cc.dataset.chipcl;return drawLeads(false);}
-  const af=c("[data-archf]");if(af){ARCH_F=af.dataset.archf;return drawArchive();}
+  const fl=c("[data-filt]");if(fl){FILT=fl.dataset.filt;SEG="calls";QTXT="";return kc(drawToday);}
+  const sn=c("[data-sortnew]");if(sn){SORT_NEW=sn.dataset.sortnew;return kc(fillToday);}
+  if(c("[data-newall]")){NEW_ALL=!NEW_ALL;return kc(fillToday);}
+  const cc=c("[data-chipcl]");if(cc){FILT_CL=cc.dataset.chipcl;return kc(()=>drawLeads(false));}
+  const af=c("[data-archf]");if(af){ARCH_F=af.dataset.archf;return kc(drawArchive);}
   const ao=c("[data-archopen]");if(ao){ARCH_OPEN=ARCH_OPEN===ao.dataset.archopen?null:ao.dataset.archopen;return drawArchive();}
   const rt=c("[data-return]");if(rt)return returnLead(rt.dataset.return);
   const sc=c("[data-startcall]");if(sc)return startCall(sc.dataset.startcall);
