@@ -89,7 +89,7 @@ select{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xml
 <div class="app">
   <div class="top"><h1>Call<span>ex</span></h1><small id="who"></small></div>
   <main id="main"></main>
-  <p class="demo" id="ver">версия 15 · 21.10 21:10</p>
+  <p class="demo" id="ver">версия 16 · 22.10 11:25</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in">
@@ -352,11 +352,20 @@ let TAB = "today", CUR = null, CALL = null;   // CALL: {inn, hist:[{id,theme}]}
 const main = document.getElementById("main");
 function setTab(t){ TAB=t; CUR=null; CALL=null; draw(); }
 const active = () => Object.values(LEADS).filter(l=>!l.closed);
-function leadBtn(l){
+const SORTS=[["long","Дольше всех"],["alpha","По алфавиту"],["rev","По выручке"],["imp","По импорту"],["exp","По экспорту"]];
+let SORT_NEW="long", SORT_CL="alpha";
+function sortLeads(a,k){ const arr=a.slice();
+  if (k==="alpha") return arr.sort((x,y)=>x.name.localeCompare(y.name,"ru"));
+  if (k==="long") return arr.sort((x,y)=>(x.created||"").localeCompare(y.created||"")||x.name.localeCompare(y.name,"ru"));
+  const ok=l=>typeof l[k]==="number" && l[k]>=0.005;
+  return arr.sort((x,y)=>{ const a1=ok(x), b1=ok(y); if (a1!==b1) return a1?-1:1; return ((y[k]||0)-(x[k]||0)) || x.name.localeCompare(y.name,"ru"); }); }
+const sortSel=(id,cur)=>`<select id="${id}" aria-label="Сортировка" style="margin:0 0 10px">${SORTS.map(([k,t])=>`<option value="${k}"${k===cur?" selected":""}>${t}</option>`).join("")}</select>`;
+const sortTxt=(l,k)=> k==="rev"?" · выручка "+FMT_B(l.rev) : k==="imp"?" · импорт "+FMT_B(l.imp) : k==="exp"?" · экспорт "+FMT_B(l.exp) : "";
+function leadBtn(l,k){
   const due = l.next ? (l.next < iso(today()) ? `<span class="late">просрочено ${ru(l.next)}${l.nextTime?" "+l.nextTime:""}</span>` : `следующий шаг ${ru(l.next)}${l.nextTime?" в "+l.nextTime:""}`) : "дата не поставлена";
   const hook = (l.hooks||[])[0];
   return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
-    <span class="meta">${esc(l.fio||"")}${l.status?` · <span class="pill">${esc(l.status)}</span>`:""} · ${due}</span>
+    <span class="meta">${esc(l.fio||"")}${l.reg?` · ${esc(l.reg)}`:""}${l.status?` · <span class="pill">${esc(l.status)}</span>`:""} · ${due}${typeof k==="string"?sortTxt(l,k):""}</span>
     ${hook?`<div class="hookline">${esc(hook.t)}${hook.d?` · ${ru(hook.d)}`:""}</div>`:""}</button>`;
 }
 const isNew = l => !l.closed && l.status === "Новый клиент";
@@ -364,11 +373,11 @@ let NEW_ALL = false, ADDMODE = "one";
 const NEW_LIMIT = 5;   // регламент: «Новый лид» не дольше 5 рабочих дней
 function workdays(from, to){ let n=0; const d=new Date(from+"T00:00:00"), e=new Date(to+"T00:00:00");
   while (d<e){ d.setDate(d.getDate()+1); const w=d.getDay(); if (w!==0 && w!==6) n++; } return n; }
-function newBtn(l){
+function newBtn(l,k){
   const n = workdays(l.created||iso(today()), iso(today())), late = n > NEW_LIMIT;
   const ph = phonesOf(l)[0];
   return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
-    <span class="meta">${esc(l.fio||"ФИО не указано")}${ph?` · ${esc(ph)}`:""} · <span${late?' class="late"':""}>в статусе ${n} раб. дн.${late?` (норматив ${NEW_LIMIT})`:""}</span></span></button>`;
+    <span class="meta">${esc(l.fio||"ФИО не указано")}${l.reg?` · ${esc(l.reg)}`:""}${ph?` · ${esc(ph)}`:""} · <span${late?' class="late"':""}>в статусе ${n} раб. дн.${late?` (норматив ${NEW_LIMIT})`:""}</span>${typeof k==="string"?sortTxt(l,k):""}</span></button>`;
 }
 function drawToday(){
   const t = iso(today());
@@ -377,22 +386,27 @@ function drawToday(){
   main.innerHTML = `<div class="card"><h2>Сегодня · ${ru(t)}</h2>
     ${due.length?`<div class="list">${due.map(leadBtn).join("")}</div>`:`<p class="muted">На сегодня звонков нет. Добавь клиента кнопкой «+».</p>`}</div>
     ${soon.length?`<div class="card"><h2>Ближайшие 3 дня</h2><div class="list">${soon.map(leadBtn).join("")}</div></div>`:""}`;
-  const nw = active().filter(isNew).sort((a,b)=>(a.created||"").localeCompare(b.created||""));
+  const nw = sortLeads(active().filter(isNew), SORT_NEW);
   if (nw.length){
     const shown = NEW_ALL ? nw : nw.slice(0,8);
     main.insertAdjacentHTML("beforeend", `<div class="card"><h2>Новые · ${nw.length}</h2>
-      <div class="list">${shown.map(newBtn).join("")}</div>
+      ${nw.length>1?sortSel("sortnew",SORT_NEW):""}
+      <div class="list">${shown.map(l=>newBtn(l,SORT_NEW)).join("")}</div>
       ${nw.length>8?`<button class="btn" type="button" id="newall" style="margin-top:10px">${NEW_ALL?"Свернуть":"Показать все"}</button>`:""}</div>`);
     const na = document.getElementById("newall"); if (na) na.onclick = () => { NEW_ALL=!NEW_ALL; drawToday(); };
+    const sn = document.getElementById("sortnew"); if (sn) sn.onchange = e => { SORT_NEW=e.target.value; drawToday(); };
   }
 }
 function drawLeads(arch){
-  const all = Object.values(LEADS).filter(l=>arch?!!l.closed:!l.closed).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+  const all = sortLeads(Object.values(LEADS).filter(l=>arch?!!l.closed:!l.closed), arch?"alpha":SORT_CL);
+  const rowB = l => arch ? archBtn(l) : leadBtn(l, SORT_CL);
   main.innerHTML = `<div class="card"><h2>${arch?"Архив":"Клиенты в работе"} · ${all.length}</h2>
     <input id="q" placeholder="Поиск по названию или ИНН" aria-label="Поиск">
-    <div class="list" id="ll" style="margin-top:10px">${all.map(arch?archBtn:leadBtn).join("")||`<p class="muted">${arch?"Закрытых клиентов пока нет.":"Пока пусто."}</p>`}</div></div>`;
+    ${arch?"":`<div style="margin-top:10px">${sortSel("sortcl",SORT_CL)}</div>`}
+    <div class="list" id="ll" style="margin-top:${arch?10:0}px">${all.map(rowB).join("")||`<p class="muted">${arch?"Закрытых клиентов пока нет.":"Пока пусто."}</p>`}</div></div>`;
   document.getElementById("q").addEventListener("input", e=>{ const v=e.target.value.toLowerCase();
-    document.getElementById("ll").innerHTML = all.filter(l=>l.name.toLowerCase().includes(v)||l.inn.includes(v)).map(arch?archBtn:leadBtn).join(""); });
+    document.getElementById("ll").innerHTML = all.filter(l=>l.name.toLowerCase().includes(v)||l.inn.includes(v)).map(rowB).join(""); });
+  const sc = document.getElementById("sortcl"); if (sc) sc.onchange = e => { SORT_CL=e.target.value; drawLeads(arch); };
 }
 function archBtn(l){ const back = addDays(COOLDOWN_DAYS, l.closed.date);
   return `<button class="lead" type="button" data-open="${esc(l.inn)}"><b>${esc(l.name)}</b>
@@ -412,40 +426,69 @@ function parseTSV(text){ // табличный текст из Excel: столб
   return rows.filter(r=>r.some(x=>x.trim()!==""));
 }
 function phonesFrom(txt){ return String(txt||"").split(/[,;\n]+/).map(x=>x.trim()).filter(x=>(x.match(/\d/g)||[]).length>=10); }
-function importList(text){
-  const all = parseTSV(text);
+const FMT_B = v => (typeof v==="number" && isFinite(v) && v>=0.005) ? v.toFixed(2).replace(".",",")+" млрд ₽" : "—";
+function numFrom(x){ if (typeof x==="number") return isFinite(x)?x:null;
+  let s=String(x==null?"":x).replace(/[\s\u00a0]/g,""); s = /^\d{1,3}(,\d{3}){2,}(\.\d+)?$/.test(s) ? s.replace(/,/g,"") : s.replace(",","."); if(!s||!/^-?[\d.]+(e[+-]?\d+)?$/i.test(s)) return null;
+  const n=Number(s); return isFinite(n)?n:null; }
+function unitB(h, dflt){ h=(h||"").toLowerCase(); if(/млрд/.test(h)) return 1; if(/млн/.test(h)) return 1e-3; if(/тыс/.test(h)) return 1e-6; return dflt; }   // множитель к млрд
+let XLSX_P=null;
+function loadXlsx(){ if (window.XLSX) return Promise.resolve();
+  if (!XLSX_P) XLSX_P = new Promise((ok,no)=>{ const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=ok;
+    s.onerror=()=>{ XLSX_P=null; no(new Error("не загрузилась библиотека чтения Excel")); }; document.head.appendChild(s); });
+  return XLSX_P; }
+function importList(text){ return importRows(parseTSV(text)); }
+function importRows(all){
   const hi = all.slice(0,3).findIndex(r=>r.some(c=>c.trim().toLowerCase()==="инн"));   // строка заголовков (бывает вторая)
   if (hi<0 || all.length<hi+2) return {err:"Не нашёл строку заголовков со столбцом «ИНН» или данные под ней. Скопируй из Excel вместе с заголовками."};
   const raw = all[hi].map(h=>h.trim()), hdr = raw.map(h=>h.toLowerCase());
   const iName = hdr.findIndex(h=>h.includes("компани")||h.includes("наименование"));
   const iInn = hdr.findIndex(h=>h==="инн");            // первый столбец ИНН — компания
   const iFio = hdr.findIndex(h=>h.includes("фио"));
-  const iPh = hdr.map((h,i)=>(/(тел|номер|контакт|моб|phone|альтернатив)/.test(h) && !/(инн|фио|почт|mail|адрес|сайт)/.test(h) && i!==iName && i!==iFio)?i:-1).filter(i=>i>=0);
+  const iPh = hdr.map((h,i)=>(/(тел|номер|контакт|моб|phone|альтернатив)/.test(h) && !/(инн|фио|почт|mail|адрес|сайт)/.test(h) && !(/лпр/.test(h) && !/(номер|тел|моб)/.test(h)) && i!==iName && i!==iFio)?i:-1).filter(i=>i>=0);
+  const iRev = hdr.findIndex(h=>/выруч/.test(h)), iImp = hdr.findIndex(h=>/импорт/.test(h)), iExp = hdr.findIndex(h=>/экспорт/.test(h)), iReg = hdr.findIndex(h=>/(област|регион)/.test(h));
+  const uRev = unitB(raw[iRev],1e-9), uImp = unitB(raw[iImp],1e-9), uExp = unitB(raw[iExp],1e-9);
   if (iName<0) return {err:"Не нашёл столбец с названием компании («Компания» или «Наименование»)."};
-  return {rows:all.slice(hi+1), iName, iInn, iFio, iPh, cols:{name:raw[iName], inn:raw[iInn], fio:iFio>=0?raw[iFio]:"—", ph:iPh.map(i=>raw[i])}};
+  return {rows:all.slice(hi+1), iName, iInn, iFio, iPh, iRev, iImp, iExp, iReg, uRev, uImp, uExp, cols:{name:raw[iName], inn:raw[iInn], fio:iFio>=0?raw[iFio]:"—", ph:iPh.map(i=>raw[i]), rev:iRev>=0?raw[iRev]:"—", imp:iImp>=0?raw[iImp]:"—", exp:iExp>=0?raw[iExp]:"—", reg:iReg>=0?raw[iReg]:"—"}};
 }
-async function runImport(text){
-  const r = importList(text); if (r.err) return r;
-  let added=0, dup=0, bad=0;
+async function runImport(src){
+  const r = typeof src==="string" ? importList(src) : importRows(src); if (r.err) return r;
+  let added=0, dup=0, upd=0, bad=0;
   for (const row of r.rows){
     const inn=(row[r.iInn]||"").replace(/\D/g,""), name=(row[r.iName]||"").trim();
     if (!/^(\d{10}|\d{12})$/.test(inn) || !name){ bad++; continue; }
-    if (LEADS[inn]){ dup++; continue; }
+    const ex = {};
+    if (r.iRev>=0){ const v=numFrom(row[r.iRev]); if (v!=null) ex.rev=v*r.uRev; }
+    if (r.iImp>=0){ const v=numFrom(row[r.iImp]); if (v!=null) ex.imp=v*r.uImp; }
+    if (r.iExp>=0){ const v=numFrom(row[r.iExp]); if (v!=null) ex.exp=v*r.uExp; }
+    if (r.iReg>=0){ const g=String(row[r.iReg]||"").trim(); if (g && !/^(москва|московская)/i.test(g)) ex.reg=g; }
+    const old = LEADS[inn];
+    if (old){ let ch=false; for (const k of ["rev","imp","exp","reg"]) if (ex[k]!==undefined && old[k]===undefined){ old[k]=ex[k]; ch=true; }
+      if (ch){ await save(old); upd++; } else dup++; continue; }
     const phones=[]; r.iPh.forEach(i=>phonesFrom(row[i]).forEach(p=>{ if(!phones.includes(p)) phones.push(p); }));
-    await save({inn, name, fio: r.iFio>=0?(row[r.iFio]||"").trim():"", pos:"", phones, status:"Новый клиент", tag:"", next:"", nextTime:"", nextWhat:"", hooks:[], hist:[], created:iso(today()), closed:null});
+    await save({inn, name, fio: r.iFio>=0?(row[r.iFio]||"").trim():"", pos:"", phones, status:"Новый клиент", tag:"", next:"", nextTime:"", nextWhat:"", hooks:[], hist:[], created:iso(today()), closed:null, ...ex});
     added++;
   }
-  return {added, dup, bad, cols:r.cols};
+  return {added, dup, upd, bad, cols:r.cols};
 }
 function drawImport(res){
   main.innerHTML = `<div class="card"><h2>Новые клиенты</h2>${addTabs()}
-    <p class="small muted">В Excel выдели таблицу вместе со строкой заголовков, скопируй и вставь сюда. Нужны столбцы с названием компании и ИНН; ФИО и телефоны подхватятся, если есть. Клиенты с уже существующим ИНН пропускаются.</p>
+    <p class="small muted">Выбери файл Excel или вставь скопированную таблицу вместе со строкой заголовков. Нужны столбцы с названием компании и ИНН; ФИО, телефоны, выручка, импорт и экспорт подхватятся, если есть. Клиенты с уже существующим ИНН не дублируются, но им дописываются недостающие выручка, импорт и экспорт.</p>
+    <div class="row" style="margin:0 0 10px"><button class="btn primary" type="button" id="impfile">Выбрать файл Excel (.xlsx)</button><input type="file" id="impf" accept=".xlsx,.xls" hidden></div>
     <textarea id="imp" rows="8" placeholder="Вставь скопированную таблицу"></textarea>
     <div class="row" style="margin-top:12px"><button class="btn primary" type="button" id="impgo">Загрузить</button></div>
-    ${res?`<div class="err">${res.err?esc(res.err):`Добавлено: <b>${res.added}</b>. Уже были: ${res.dup}. Пропущено без ИНН или названия: ${res.bad}.<br><span class="small muted">Распознал столбцы: компания «${esc(res.cols.name)}», ИНН «${esc(res.cols.inn)}», ФИО «${esc(res.cols.fio)}», телефоны: ${res.cols.ph.map(x=>"«"+esc(x)+"»").join(", ")||"не найдены"}.</span>`}</div>`:""}</div>`;
+    ${res?`<div class="err">${res.err?esc(res.err):`Добавлено: <b>${res.added}</b>. Уже были: ${res.dup}${res.upd?`, обновлено данных: ${res.upd}`:""}. Пропущено без ИНН или названия: ${res.bad}.<br><span class="small muted">Распознал столбцы: компания «${esc(res.cols.name)}», ИНН «${esc(res.cols.inn)}», ФИО «${esc(res.cols.fio)}», телефоны: ${res.cols.ph.map(x=>"«"+esc(x)+"»").join(", ")||"не найдены"}; выручка «${esc(res.cols.rev)}», импорт «${esc(res.cols.imp)}», экспорт «${esc(res.cols.exp)}», регион «${esc(res.cols.reg)}».</span>`}</div>`:""}</div>`;
   bindAddTabs();
   document.getElementById("impgo").onclick = async () => { const t=document.getElementById("imp").value; if(!t.trim()) return;
     const r = await runImport(t); if (r.added) toast("Добавлено: "+r.added); drawImport(r); };
+  const pick = document.getElementById("impf");
+  document.getElementById("impfile").onclick = () => pick.click();
+  pick.onchange = async () => { const f = pick.files && pick.files[0]; if (!f) return;
+    try { toast("Читаю файл…"); await loadXlsx();
+      const wb = XLSX.read(await f.arrayBuffer(), {type:"array"}), ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:""}).map(r=>Array.from(r,c=>c==null?"":String(c))).filter(r=>r.some(x=>x.trim()!==""));
+      const r = await runImport(rows); if (r.added||r.upd) toast("Добавлено: "+r.added+(r.upd?", обновлено: "+r.upd:"")); drawImport(r);
+    } catch(e) { drawImport({err:"Не удалось прочитать файл ("+((e&&e.message)||e)+"). Можно вставить таблицу текстом."}); } };
 }
 function drawAdd(msg){
   if (ADDMODE==="list") return drawImport();
