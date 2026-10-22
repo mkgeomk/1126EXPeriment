@@ -210,9 +210,9 @@ body.deep .demo{display:none}
 <style>
 #splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease;touch-action:manipulation}
 #splash.off{opacity:0;pointer-events:none}
-#splash svg{width:132px;height:132px;display:block}
+#splash svg{width:132px;height:132px;display:block;stroke:none}
 </style>
-<div id="splash" aria-hidden="true"><svg viewBox="0 0 400 400"><path id="sp-c" d="" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round"/><circle id="sp-d" cx="292" cy="200" r="26" fill="#ff8a00"/></svg></div>
+<div id="splash" aria-hidden="true"><svg viewBox="0 0 400 400"><path id="sp-c" d="" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round"/><circle id="sp-d" cx="292" cy="200" r="26" fill="#ff8a00" stroke="none"/></svg></div>
 <script>
 (function(){
   var sp=document.getElementById("splash"); if(!sp) return;
@@ -260,7 +260,7 @@ body.deep .demo{display:none}
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 18 · 22.10 16:15</p>
+  <p class="demo" id="ver">версия 18 · 22.10 16:30</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
