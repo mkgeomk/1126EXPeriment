@@ -207,9 +207,60 @@ body.deep .demo{display:none}
 .ck{width:24px;height:24px;border-radius:50%;border:2px solid #555;flex:none;display:grid;place-items:center;margin-right:2px}.ck.on{background:var(--acc);border-color:var(--acc)}.ck.on:after{content:"✓";color:#140a02;font-weight:800;font-size:14px;line-height:1}
 
 </style>
+<style>
+#splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease;touch-action:manipulation}
+#splash.off{opacity:0;pointer-events:none}
+#splash svg{width:132px;height:132px;display:block}
+</style>
+<div id="splash" aria-hidden="true"><svg viewBox="0 0 400 400"><path id="sp-c" d="" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round"/><circle id="sp-d" cx="292" cy="200" r="26" fill="#ff8a00"/></svg></div>
+<script>
+(function(){
+  var sp=document.getElementById("splash"); if(!sp) return;
+  var C=document.getElementById("sp-c"), D=document.getElementById("sp-d");
+  var CX=200,CY=200,R=92,SW=34,DELTA=32,LOW=-318,UP=-42;
+  function bez(x1,y1,x2,y2){return function(x){var lo=0,hi=1,t;for(var i=0;i<30;i++){t=(lo+hi)/2;var xx=3*(1-t)*(1-t)*t*x1+3*(1-t)*t*t*x2+t*t*t;if(xx<x)lo=t;else hi=t;}t=(lo+hi)/2;return 3*(1-t)*(1-t)*t*y1+3*(1-t)*t*t*y2+t*t*t;};}
+  var E=bez(.45,0,.25,1);
+  function pt(a){a=a*Math.PI/180;return [CX+R*Math.cos(a),CY+R*Math.sin(a)];}
+  function draw(th,lo,hi){
+    var p=pt(th); D.setAttribute("cx",p[0].toFixed(2)); D.setAttribute("cy",p[1].toFixed(2));
+    var ln=hi-lo;
+    if(ln<=0.2){C.setAttribute("d","");return;}
+    var a=pt(hi), b=pt(lo);
+    C.setAttribute("d","M "+a[0].toFixed(2)+" "+a[1].toFixed(2)+" A "+R+" "+R+" 0 "+(ln>180?1:0)+" 0 "+b[0].toFixed(2)+" "+b[1].toFixed(2));
+    C.setAttribute("stroke-width",(SW*Math.min(1,ln/22)).toFixed(2));
+  }
+  var HOLD=200, OUT=1200, REST=120, IN=1200, END=200, T=HOLD+OUT+REST+IN+END;
+  var t0=null, gone=false;
+  function frame(th){ return th; }
+  function render(ms){
+    var th,lo=LOW,hi=UP;
+    if(ms<HOLD){th=0;}
+    else if(ms<HOLD+OUT){th=-360*E((ms-HOLD)/OUT); hi=Math.min(UP,th-DELTA);}
+    else if(ms<HOLD+OUT+REST){th=-360; hi=lo;}
+    else if(ms<HOLD+OUT+REST+IN){th=-360*E((ms-HOLD-OUT-REST)/IN); lo=Math.max(LOW,th+DELTA);}
+    else {th=-360;}
+    draw(th,lo,hi);
+  }
+  function hide(){ if(gone) return; gone=true; sp.classList.add("off"); setTimeout(function(){ if(sp.parentNode) sp.parentNode.removeChild(sp); },500); }
+  var reduce=false; try{ reduce=matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+  if(reduce){ render(0); setTimeout(hide,500); }
+  else {
+    render(0);
+    (function tick(now){
+      if(gone) return;
+      if(t0===null) t0=now;
+      var ms=now-t0; render(Math.min(ms,T-1));
+      if(ms>=T) hide(); else requestAnimationFrame(tick);
+    })(performance.now());
+  }
+  sp.addEventListener("click",hide);
+  setTimeout(hide,T+1500);
+})();
+</script>
+
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 17 · 22.10 14:10</p>
+  <p class="demo" id="ver">версия 18 · 22.10 16:15</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -637,7 +688,7 @@ function fillToday(){
       ${over.length?`<div class="hs" style="margin:6px 0 0">Просрочено: ${over.length} <button class="lnk" type="button" data-filt="over">→ открыть</button></div>`:`<div class="hs" style="margin:6px 0 0">Добавь клиента кнопкой «Добавить».</div>`}</div>`;
   const cnt={today:todayL.length+nod.length,over:over.length};
   const chip=(k,t,n,red)=>`<button type="button" data-filt="${k}" class="${FILT===k?"on":""}">${t}${n!=null?` <b${red&&n>0&&FILT!==k?' class="r"':""}>${n}</b>`:""}</button>`;
-  const chips=`<div class="chips">${chip("today","Сегодня",cnt.today)}${chip("over","Просрочено",cnt.over,true)}${chip("3d","3 дня")}${chip("all","Все")}</div>`;
+  const chips=`<div class="chips">${chip("today","Сегодня",cnt.today)}${chip("over","Просрочено",cnt.over,true)}${chip("all","Все звонки",act.length)}</div>`;
   let list;
   if(FILT==="today")list=todayL.map(l=>rowH(l)).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"})));
   else if(FILT==="over")list=over.map(l=>rowH(l));
@@ -884,7 +935,7 @@ function openProfile(){closeOv();
     <div class="f"><label for="pf_p">Должность</label><input id="pf_p" value="${esc(PROFILE.pos)}" placeholder="Не заполнено — в фразах будет [должность]"></div>
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 17</p></div>`;
+    <p class="demo">версия 18</p></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
