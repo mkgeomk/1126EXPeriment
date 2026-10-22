@@ -204,10 +204,12 @@ body.deep .demo{display:none}
 .bar .btn{height:52px}
 .btn,.gbtn{flex-shrink:0}
 
+.ck{width:24px;height:24px;border-radius:50%;border:2px solid #555;flex:none;display:grid;place-items:center;margin-right:2px}.ck.on{background:var(--acc);border-color:var(--acc)}.ck.on:after{content:"✓";color:#140a02;font-weight:800;font-size:14px;line-height:1}
+
 </style>
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 17 · 22.10 11:40</p>
+  <p class="demo" id="ver">версия 17 · 22.10 13:30</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -414,8 +416,8 @@ const store = {
     try { res(Object.keys(localStorage).filter(k=>k.startsWith("cx_")).map(k=>k.slice(3))); } catch { res(Object.keys(mem)); } }); },
   get(keys){ return new Promise(res => { if (CS) return CS.getItems(keys,(e,v)=>res(e?{}:v||{}));
     const o={}; for (const k of keys){ try { o[k]=localStorage.getItem("cx_"+k); } catch { o[k]=mem[k]; } } res(o); }); },
-  set(k,v){ return new Promise(res => { if (CS) return CS.setItem(k,v,()=>res());
-    try { localStorage.setItem("cx_"+k,v); } catch { mem[k]=v; } res(); }); },
+  set(k,v){ return new Promise(res => { if (CS) return CS.setItem(k,v,(e,ok)=>res(!e && ok!==false));
+    try { localStorage.setItem("cx_"+k,v); } catch { mem[k]=v; } res(true); }); },
 };
 let LEADS = {};               // inn -> lead
 const COOLDOWN_DAYS = 30;
@@ -429,7 +431,7 @@ async function save(l){
   l.hist = (l.hist||[]).slice(-HIST_MAX);
   let s = JSON.stringify(l);
   while (s.length > 4000 && l.hist.length > 1){ l.hist.shift(); s = JSON.stringify(l); }
-  LEADS[l.inn] = l; await store.set("lead_"+l.inn, s);
+  LEADS[l.inn] = l; return await store.set("lead_"+l.inn, s);
 }
 
 // ===================== Даты и формат =====================
@@ -496,9 +498,9 @@ function importRows(all){
   if (iName<0) return {err:"Не нашёл столбец с названием компании («Компания» или «Наименование»)."};
   return {rows:all.slice(hi+1), iName, iInn, iFio, iPh, iRev, iImp, iExp, iReg, uRev, uImp, uExp, cols:{name:raw[iName], inn:raw[iInn], fio:iFio>=0?raw[iFio]:"—", ph:iPh.map(i=>raw[i]), rev:iRev>=0?raw[iRev]:"—", imp:iImp>=0?raw[iImp]:"—", exp:iExp>=0?raw[iExp]:"—", reg:iReg>=0?raw[iReg]:"—"}};
 }
-async function runImport(src,dry){
+async function runImport(src,dry,prog){
   const r = typeof src==="string" ? importList(src) : importRows(src); if (r.err) return r;
-  let added=0, dup=0, upd=0, bad=0; const seen=new Set();
+  let added=0, dup=0, upd=0, bad=0; const seen=new Set(), todo=[];
   for (const row of r.rows){
     const inn=(row[r.iInn]||"").replace(/\D/g,""), name=(row[r.iName]||"").trim();
     if (!/^(\d{10}|\d{12})$/.test(inn) || !name){ bad++; continue; }
@@ -510,13 +512,16 @@ async function runImport(src,dry){
     if(seen.has(inn)){dup++;continue;} seen.add(inn);
     const old = LEADS[inn];
     if (old){ let ch=false; for (const k of ["rev","imp","exp","reg"]) if (ex[k]!==undefined && old[k]===undefined){ if(!dry) old[k]=ex[k]; ch=true; }
-      if (ch){ if(!dry) await save(old); upd++; } else dup++; continue; }
+      if (ch){ if(!dry) todo.push(old); upd++; } else dup++; continue; }
     const phones=[]; r.iPh.forEach(i=>phonesFrom(row[i]).forEach(p=>{ if(!phones.includes(p)) phones.push(p); }));
     if(dry){ added++; continue; }
-    await save({inn, name, fio: r.iFio>=0?(row[r.iFio]||"").trim():"", pos:"", phones, status:"Новый клиент", tag:"", next:"", nextTime:"", nextWhat:"", hooks:[], hist:[], created:iso(today()), closed:null, ...ex});
+    todo.push({inn, name, fio: r.iFio>=0?(row[r.iFio]||"").trim():"", pos:"", phones, status:"Новый клиент", tag:"", next:"", nextTime:"", nextWhat:"", hooks:[], hist:[], created:iso(today()), closed:null, ...ex});
     added++;
   }
-  return {added, dup, upd, bad, cols:r.cols};
+  let done=0, failed=0, pos=0;
+  const worker=async()=>{ while(pos<todo.length){ const l=todo[pos++]; let ok=false; try{ ok=await save(l); }catch{} if(!ok) failed++; done++; if(prog) prog(done,todo.length); } };
+  if(!dry) await Promise.all(Array.from({length:Math.min(5,todo.length)},worker));
+  return {added, dup, upd, bad, failed, cols:r.cols};
 }
 
 // ===================== Новый интерфейс (версия 17) =====================
@@ -535,6 +540,7 @@ const IC={
  chev:'<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
 };
 let TAB="today", CUR=null, CALL=null, TM=null, TGNAME="";
+let SEL=null, SELVIS=[], FILL=null;
 const main=document.getElementById("main");
 const WD=["вс","пн","вт","ср","чт","пт","сб"];
 const dm=s=>s?s.slice(8,10)+"."+s.slice(5,7):"";
@@ -558,7 +564,7 @@ const tagTok=t=>{const m=String(t||"").match(/^[А-ЯЁA-Z0-9\-]+/);return m?m[0
 function whenTxt(l){const t=iso(today());if(!l.next)return "—";if(l.next===t)return l.nextTime||"сегодня";if(l.next<t){const d=daysBetween(l.next,t);return d===1?"вчера":dm(l.next);}return dm(l.next)+(l.nextTime?" "+l.nextTime:"");}
 function subLine(l){return [fioShort(l.fio),tagTok(l.tag),l.reg].filter(Boolean).join(" · ");}
 function inTxt(tm){const [h,m]=tm.split(":").map(Number),d=new Date();const diff=h*60+m-(d.getHours()*60+d.getMinutes());if(diff<=0)return "сейчас";if(diff<60)return "через "+diff+" мин";return "через "+Math.floor(diff/60)+" ч"+(diff%60?" "+diff%60+" мин":"");}
-function setTab(t){TAB=t;CUR=null;CALL=null;draw();}
+function setTab(t){TAB=t;CUR=null;CALL=null;SEL=null;draw();}
 function startCall(inn){const l=LEADS[inn];if(!l)return;CALL={inn,t0:Date.now(),hist:[{id:"start",theme:l.theme||null}]};CUR=null;draw();}
 
 // ---------- Профиль и подстановки в фразы ----------
@@ -576,6 +582,12 @@ function rowH(l,o){o=o||{};const t=iso(today()),late=!!(l.next&&l.next<t&&!l.clo
   return `<button class="row" type="button" data-open="${esc(l.inn)}"><span class="av">${esc(ini(l.name))}</span><span class="rm"><b>${esc(l.name)}</b><small>${esc(o.sub!=null?o.sub:subLine(l))}</small></span>${right}${o.noPill?"":pillH(pt,pc)}</button>`;}
 
 // ---------- Сортировки ----------
+const selBtn=()=>`<button class="lnk" type="button" data-selmode style="margin-right:6px">Выбрать</button>`;
+function selRowH(l,sub){const on=SEL&&SEL.has(l.inn);return `<button class="row" type="button" data-selrow="${esc(l.inn)}"><span class="ck${on?" on":""}"></span><span class="rm"><b>${esc(l.name)}</b><small>${esc(sub!=null?sub:subLine(l))}</small></span></button>`;}
+function selBar(){const n=SEL?SEL.size:0,allOn=SELVIS.length&&SELVIS.every(x=>SEL.has(x));
+  return `<div class="bar" id="selbar"><button class="gbtn" type="button" data-selcancel style="flex:1">Готово</button><button class="gbtn" type="button" data-selall style="flex:1">${allOn?"Снять все":"Выбрать все"}</button><button class="btn${n?"":" dis"}" type="button" data-seldel style="flex:1.3;background:var(--bad);color:#fff;height:44px;font-size:15px">Удалить${n?" ("+n+")":""}</button></div>`;}
+function updSelBar(){const b=document.getElementById("selbar");if(b)b.outerHTML=selBar();}
+
 const SORTS=[["long","Дольше всех"],["alpha","По алфавиту"],["rev","По выручке"],["imp","По импорту"],["exp","По экспорту"]];
 let SORT_NEW="long",SORT_CL="alpha";
 function sortLeads(a,k){const arr=a.slice();
@@ -654,16 +666,19 @@ const grp=l=>({"Новый клиент":"Новые","Сделать холод
 function drawLeads(arch){
   if(arch)return drawArchive();
   const all=active();
-  const head=headH(`<div class="hm">Клиенты · ${all.length}</div>`,`<button class="ib" type="button" data-imp aria-label="Загрузить список">${IC.upload}</button>`);
+  const head=headH(`<div class="hm">Клиенты · ${all.length}</div>`,(SEL?`<button class="lnk" type="button" data-selcancel>Готово</button>`:selBtn()+`<button class="ib" type="button" data-imp aria-label="Загрузить список">${IC.upload}</button>`));
   const order=["Новые","Звонок","Встреча","КП","ХОЛД","Другое"],cnt={};all.forEach(l=>{const g=grp(l);cnt[g]=(cnt[g]||0)+1;});
   if(FILT_CL!=="all"&&!cnt[FILT_CL])FILT_CL="all";
   main.innerHTML=head+`<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН или ФИО" aria-label="Поиск"></div>
    <div class="chips"><button type="button" data-chipcl="all" class="${FILT_CL==="all"?"on":""}">Все ${all.length}</button>${order.filter(g=>cnt[g]).map(g=>`<button type="button" data-chipcl="${g}" class="${FILT_CL===g?"on":""}">${g} ${cnt[g]}</button>`).join("")}</div>
    <label class="sorts">Сортировка <select id="sortcl" aria-label="Сортировка">${SORTS.map(([k,t])=>`<option value="${k}"${k===SORT_CL?" selected":""}>${t}</option>`).join("")}</select></label>
-   <div class="lst" id="ll"></div>`;
+   <div class="lst" id="ll"></div>${SEL?'<div id="selbar"></div>':""}`;
   const fill=()=>{const v=document.getElementById("q").value.trim().toLowerCase();
     const rows=sortLeads(all.filter(l=>(FILT_CL==="all"||grp(l)===FILT_CL)&&(!v||(l.name+" "+l.inn+" "+(l.fio||"")).toLowerCase().includes(v))),SORT_CL);
-    document.getElementById("ll").innerHTML=rows.map(l=>(SORT_CL==="rev"||SORT_CL==="imp"||SORT_CL==="exp")?rowH(l,{rightB:FMT_B(l[SORT_CL]),rightS:sortCap(SORT_CL)}):rowH(l)).join("")||`<p class="mut pad">Пока пусто.</p>`;};
+    SELVIS=rows.map(l=>l.inn);
+    document.getElementById("ll").innerHTML=rows.map(l=>SEL?selRowH(l):(SORT_CL==="rev"||SORT_CL==="imp"||SORT_CL==="exp")?rowH(l,{rightB:FMT_B(l[SORT_CL]),rightS:sortCap(SORT_CL)}):rowH(l)).join("")||`<p class="mut pad">Пока пусто.</p>`;
+    if(SEL)updSelBar();};
+  FILL=fill;
   fill();
   document.getElementById("q").addEventListener("input",fill);
   document.getElementById("sortcl").onchange=e=>{SORT_CL=e.target.value;fill();};
@@ -677,15 +692,17 @@ function drawArchive(){
   const cnt={};all.forEach(l=>{cnt[g(l)]=(cnt[g(l)]||0)+1;});
   if(ARCH_F!=="all"&&!cnt[ARCH_F])ARCH_F="all";
   const t=iso(today());
+  SELVIS=all.filter(l=>ARCH_F==="all"||g(l)===ARCH_F).map(l=>l.inn);FILL=drawArchive;
   const rows=all.filter(l=>ARCH_F==="all"||g(l)===ARCH_F).map(l=>{
     const back=addDays(COOLDOWN_DAYS,l.closed.date),left=daysBetween(t,back),code=tagTok(l.tag)||(g(l)==="В КП"?"КП":"Отказ");
     const open=ARCH_OPEN===l.inn;
+    if(SEL)return selRowH(l,left>0?"снова можно с "+dm(back):"можно вернуть в работу");
     return `<div><button class="row" type="button" data-archopen="${esc(l.inn)}"><span class="av">${esc(ini(l.name))}</span><span class="rm"><b>${esc(l.name)}</b><small>${esc(left>0?"снова можно с "+dm(back):"можно вернуть в работу")}</small></span><span class="rr"><b>${left>0?"через "+left+" дн":"готов"}</b></span>${pillH(code,g(l)==="В КП"?"g":"m")}</button>
      ${open?`<div class="step" style="flex-direction:column;align-items:stretch;gap:10px"><div><small>Итог · ${esc(ru(l.closed.date))}</small><b>${esc(l.closed.reason)}</b></div>
       <div style="display:flex;gap:8px"><button class="gbtn" style="flex:1" type="button" data-open="${esc(l.inn)}">Открыть карточку</button>${left>0?`<div class="gbtn" style="flex:1;opacity:.5">С ${esc(dm(back))}</div>`:`<button class="btn" style="flex:1;height:44px;font-size:14px" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`}</div></div>`:""}</div>`;}).join("");
-  main.innerHTML=headH(`<div class="hm">Архив · ${all.length}</div>`,"")+
+  main.innerHTML=headH(`<div class="hm">Архив · ${all.length}</div>`,SEL?`<button class="lnk" type="button" data-selcancel>Готово</button>`:(all.length?selBtn():""))+
    (all.length?`<div class="chips"><button type="button" data-archf="all" class="${ARCH_F==="all"?"on":""}">Все ${all.length}</button>${Object.keys(cnt).map(k=>`<button type="button" data-archf="${k}" class="${ARCH_F===k?"on":""}">${k} ${cnt[k]}</button>`).join("")}</div>`:"")+
-   `<div class="lst">${rows||`<p class="mut pad">Закрытых клиентов пока нет. Отказ после звонка переносит клиента сюда.</p>`}</div>`;
+   `<div class="lst">${rows||`<p class="mut pad">Закрытых клиентов пока нет. Отказ после звонка переносит клиента сюда.</p>`}</div>${SEL?selBar():""}`;
 }
 async function returnLead(inn){const l=LEADS[inn];if(!l||!l.closed)return;const back=addDays(COOLDOWN_DAYS,l.closed.date);
   if(iso(today())<back){toast("Снова можно с "+ru(back));return;}
@@ -711,8 +728,8 @@ function drawLead(inn){
     <div class="tile"><small>В статусе</small><b>${isN?wd+" раб. дн.":dSince+" дн."}</b>${isN?`<em class="${wd>NEW_LIMIT?"warn":"ok"}">норма ${NEW_LIMIT}</em>`:`<em>&nbsp;</em>`}</div></div>`;
   const hookNow=(l.hooks||[]).filter(x=>x.d&&x.d<=t);
   const stepBlock=l.closed?`<div class="note"><b>Итог:</b> ${esc(l.closed.reason)}<br><span class="mut">Закрыт ${ru(l.closed.date)}. Добавить снова можно с ${ru(addDays(COOLDOWN_DAYS,l.closed.date))}.</span></div>`:
-    EDIT_STEP?`<form id="stf" class="step" style="flex-direction:column;align-items:stretch;gap:0"><div class="f" style="margin-top:0"><label for="e_w">Что делаем</label><input id="e_w" value="${esc(l.nextWhat||"")}" placeholder="Например: перезвонить ФД"></div>
-      <div class="f two"><div style="flex:1"><label for="e_d">Дата</label><input id="e_d" type="date" min="2020-01-01" max="2100-12-31" value="${esc(l.next||"")}"></div><div style="flex:1"><label for="e_t">Время</label><input id="e_t" type="time" value="${esc(l.nextTime||"")}"></div></div>
+    EDIT_STEP?`<form novalidate id="stf" class="step" style="flex-direction:column;align-items:stretch;gap:0"><div class="f" style="margin-top:0"><label for="e_w">Что делаем</label><input id="e_w" value="${esc(l.nextWhat||"")}" placeholder="Например: перезвонить ФД"></div>
+      <div class="f two"><div style="flex:1"><label for="e_d">Дата</label><input id="e_d" type="date" value="${esc(l.next||"")}"></div><div style="flex:1"><label for="e_t">Время</label><input id="e_t" type="time" value="${esc(l.nextTime||"")}"></div></div>
       <div style="display:flex;gap:8px;margin-top:12px"><button class="gbtn" type="button" data-editcancel style="flex:1">Отмена</button><button class="btn" type="submit" style="flex:1;height:44px;font-size:14px">Сохранить</button></div></form>`:
     `<div class="step"><div><small>Следующий шаг</small><b>${esc(l.nextWhat||"не задан")}${l.next?` · <span${l.next<t?' class="bad"':""}>${esc(l.next===t?"сегодня":dm(l.next))}${l.nextTime?" "+esc(l.nextTime):""}</span>`:""}</b></div><button class="lnk" type="button" data-editstep>Изменить</button></div>`;
   const phones=phonesOf(l);
@@ -723,17 +740,18 @@ function drawLead(inn){
   const hooks=`<div class="sec"><h3>Зацепки</h3>${l.closed?"":`<button class="lnk" type="button" data-addhook>+ Добавить</button>`}</div>
     ${hookNow.length?`<div class="petrol" style="margin-bottom:8px"><i>СПРОСИ НА ЗВОНКЕ</i>${hookNow.map(x=>`«Как прошло: ${esc(x.t.toLowerCase())}? Вы говорили об этом в прошлый раз».`).join("<br>")}</div>`:""}
     ${(l.hooks||[]).map((x,i)=>`<div class="hk"><div class="petrol"><span><b>${esc(x.t)}</b>${x.d?` · ${esc(dm(x.d))}`:""}</span><button class="x" type="button" data-delhook="${i}" aria-label="Убрать">×</button></div></div>`).join("")||`<p class="mut pad" style="margin:0">Что клиент сказал и за что зацепиться в следующий раз.</p>`}
-    ${HOOK_F&&!l.closed?`<form id="hookf" class="f"><input id="h_t" placeholder="Новая зацепка" aria-label="Новая зацепка"><div class="f two" style="margin-top:8px"><input id="h_d" type="date" min="2020-01-01" max="2100-12-31" aria-label="Дата события"><button class="gbtn" type="submit" style="height:48px;flex:none">Добавить</button></div></form>`:""}`;
+    ${HOOK_F&&!l.closed?`<form novalidate id="hookf" class="f"><input id="h_t" placeholder="Новая зацепка" aria-label="Новая зацепка"><div class="f two" style="margin-top:8px"><input id="h_d" type="date" aria-label="Дата события"><button class="gbtn" type="submit" style="height:48px;flex:none">Добавить</button></div></form>`:""}`;
   const hist=`<div class="sec"><h3>История</h3></div><div class="hs2">${h.slice().reverse().map(x=>`<div>${esc(x.c||x.st)}<small>${esc(ru(x.d))} · ${esc(tagTok(x.tag)||x.st)}</small></div>`).join("")||`<p class="mut pad" style="margin:0">Звонков ещё не было.</p>`}</div>`;
   main.innerHTML=`<div class="back"><button class="ib" type="button" data-back aria-label="Назад">${IC.back}</button></div>
     <h1 class="cn">${esc(l.name)}</h1><p class="sub">ИНН ${esc(l.inn)}${l.created?` · клиент с ${esc(dm(l.created))}`:""}</p>
     ${(l.rev!=null||l.imp!=null||l.exp!=null)?`<p class="sub" style="margin-top:4px">${[["выручка",l.rev],["импорт",l.imp],["экспорт",l.exp]].filter(x=>typeof x[1]==="number"&&x[1]>=0.005).map(x=>x[0]+" "+FMT_B(x[1])).join(" · ")}${l.reg?(" · "+esc(l.reg)):""}</p>`:""}
     <div class="tags">${tags.map(x=>`<span class="tg">${esc(x)}</span>`).join("")}</div>
     ${tiles}${stepBlock}${hooks}${contacts}${hist}
+    <div style="text-align:center;margin:28px 0 8px"><button class="lnk" type="button" data-del style="color:var(--bad)">Удалить клиента</button></div>
     <div class="bar">${l.closed?`<button class="btn" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`:`<button class="btn" type="button" data-startcall="${esc(l.inn)}">Начать звонок</button>${l.next?`<button class="rb" type="button" data-cal aria-label="В календарь">${IC.cal}</button>`:""}`}${last?`<button class="rb" type="button" data-exp aria-label="Скопировать итог">${IC.copy}</button>`:""}</div>`;
   const redo=()=>drawLead(inn);
-  main.querySelectorAll("[data-delhook]").forEach(b=>b.onclick=async()=>{l.hooks.splice(+b.dataset.delhook,1);await save(l);redo();});
-  main.querySelectorAll("[data-delph]").forEach(b=>b.onclick=async()=>{const a=phonesOf(l).slice();a.splice(+b.dataset.delph,1);l.phones=a;delete l.phone;await save(l);redo();});
+  main.querySelectorAll("[data-delhook]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delhook;askDel("Удалить зацепку?",(l.hooks[i]||{}).t||"",async()=>{l.hooks.splice(i,1);await save(l);redo();});});
+  main.querySelectorAll("[data-delph]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delph;askDel("Удалить номер?",fmtPhone(phonesOf(l)[i]||""),async()=>{const a=phonesOf(l).slice();a.splice(i,1);l.phones=a;delete l.phone;await save(l);redo();});});
   const pf=document.getElementById("phf");if(pf){pf.onsubmit=async e=>{e.preventDefault();const v=document.getElementById("p_new").value.trim();if(!v)return;l.phones=phonesOf(l).concat(v);delete l.phone;PH_F=false;await save(l);redo();};document.getElementById("p_new").focus();}
   const hf=document.getElementById("hookf");if(hf){hf.onsubmit=async e=>{e.preventDefault();const tt=document.getElementById("h_t").value.trim();if(!tt)return;l.hooks=(l.hooks||[]);l.hooks.unshift({t:tt,d:document.getElementById("h_d").value});HOOK_F=false;await save(l);redo();};document.getElementById("h_t").focus();}
   const sf=document.getElementById("stf");if(sf)sf.onsubmit=async e=>{e.preventDefault();const g=id=>document.getElementById(id).value.trim();
@@ -742,6 +760,27 @@ function drawLead(inn){
   const kb=main.querySelector("[data-cal]");if(kb)kb.onclick=()=>openLink(calUrl(l,l.next,l.closed?"Перезвон после закрытия":(l.nextWhat||"Звонок")));
   window.scrollTo(0,0);
 }
+
+let DEL_YES=null;
+function askDel(title,txt,yes){closeOv();DEL_YES=yes;
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>${esc(title)}</b><small>${esc(txt)}</small></div></div>
+    <p class="sub" style="margin:12px 0 0">Это нельзя отменить.</p>
+    <button class="btn" type="button" data-askyes style="margin-top:16px;background:var(--bad);color:#fff">Удалить</button>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});}
+
+async function delLead(inn){
+  if(CS) await new Promise(r=>CS.removeItem("lead_"+inn,()=>r()));
+  else {try{localStorage.removeItem("cx_lead_"+inn);}catch{} delete mem["lead_"+inn];}
+  delete LEADS[inn];}
+function confirmDel(inn){const l=LEADS[inn];if(!l)return;closeOv();
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Удалить клиента?</b><small>${esc(l.name)} · ИНН ${esc(l.inn)}</small></div></div>
+    <p class="sub" style="margin:12px 0 0">Карточка, история и зацепки удалятся без возможности восстановить.</p>
+    <button class="btn" type="button" data-delyes="${esc(inn)}" style="margin-top:16px;background:var(--bad);color:#fff">Удалить</button>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});}
 
 // ---------- Звонок ----------
 function lineHtml(x){
@@ -777,12 +816,12 @@ function drawEnd(l,cur,n){
     <h1 class="t" style="margin-top:4px">${esc(closing||e.status)}</h1>
     <div class="tc" id="tagc"></div><div class="petrol" id="taghelp" style="margin-top:10px" hidden></div>
     ${sayH(e.say,"Что сказать / написать")}${e.note?`<p class="sub" style="margin-top:8px">${esc(e.note)}</p>`:""}
-    <form id="savef">
+    <form novalidate id="savef">
       <input type="hidden" id="s_tag" value="${esc(defTag)}">
       ${closing?`<div class="f"><label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="Например: КОНК — работают со Сбером, всё устраивает"></div><p class="sub" style="margin-top:6px">Клиент уйдёт в архив. Добавить снова можно через ${COOLDOWN_DAYS} дней.</p>`:""}
       <h2 class="sh">${closing?"Дата перезвона":"Когда следующий шаг"} <span class="mut" style="font-weight:500;font-size:13px">${closing?"":"· необязательно"}</span></h2>
       <div class="gr" id="datec"></div><div class="gr" id="timec"></div>
-      <div class="f two" id="cust" style="margin-top:8px" hidden><div style="flex:1"><input id="s_next" type="date" min="2020-01-01" max="2100-12-31" value="${due!=null?addDays(due):""}" aria-label="Дата"></div><div style="flex:1"><input id="s_nt" type="time" aria-label="Время"></div></div>
+      <div class="f two" id="cust" style="margin-top:8px" hidden><div style="flex:1"><input id="s_next" type="date" value="${due!=null?addDays(due):""}" aria-label="Дата"></div><div style="flex:1"><input id="s_nt" type="time" aria-label="Время"></div></div>
       <h2 class="sh">Комментарий</h2>
       <div class="f" style="margin-top:0"><textarea id="s_c" rows="3" placeholder="Как для коллеги: кто, что сказал, о чём договорились"></textarea></div>
       <h2 class="sh">Зацепка на следующий раз</h2>
@@ -866,7 +905,7 @@ const addSeg=()=>`<div class="head"><button class="ib" type="button" data-addclo
 function drawAdd(msg){
   if(ADDMODE==="list")return drawImport();
   main.innerHTML=addSeg()+`<h1 class="t">Новый клиент</h1><p class="sub">Статус «Новый клиент». Достаточно названия и ИНН.</p>
-    <form id="addf">
+    <form novalidate id="addf">
       <div class="f"><label for="f_name">Компания</label><input id="f_name" required placeholder="ООО «Пример»"></div>
       <div class="f"><label for="f_inn">ИНН</label><input id="f_inn" inputmode="numeric" required pattern="\\d{10}|\\d{12}" placeholder="10 или 12 цифр"></div>
       <div class="f"><label for="f_fio">ФИО</label><input id="f_fio" placeholder="Иванов Иван Петрович"></div>
@@ -877,7 +916,7 @@ function drawAdd(msg){
       <details class="mo"><summary>Клиент уже в работе? Статус, шаг и история</summary>
         <div class="f"><label for="f_st">Текущий статус</label><select id="f_st"><option>Новый</option><option>Сделать холодный звонок</option><option>Уточнить контакт</option><option>Назначен 2-й звонок</option><option>Назначена встреча</option><option>Назначена видео-встреча</option><option>Отправить КП</option><option>ХОЛД</option></select></div>
         <div class="f"><label for="f_nw">Следующий шаг</label><input id="f_nw" placeholder="Например: перезвонить по итогам письма"></div>
-        <div class="f two"><div style="flex:1"><label for="f_nd">Дата</label><input id="f_nd" type="date" min="2020-01-01" max="2100-12-31"></div><div style="flex:1"><label for="f_nt">Время звонка</label><input id="f_nt" type="time"></div></div>
+        <div class="f two"><div style="flex:1"><label for="f_nd">Дата</label><input id="f_nd" type="date"></div><div style="flex:1"><label for="f_nt">Время звонка</label><input id="f_nt" type="time"></div></div>
         <div class="f"><label for="f_hc">Что уже было</label><textarea id="f_hc" rows="3" placeholder="Кто, что сказал, о чём договорились"></textarea></div>
       </details>
       ${msg?`<div class="err">${msg}</div>`:""}
@@ -887,6 +926,7 @@ function drawAdd(msg){
   document.getElementById("addf").addEventListener("submit",async e=>{e.preventDefault();
     const v=id=>document.getElementById(id).value.trim();
     const inn=v("f_inn").replace(/\D/g,"");
+    if(!v("f_name"))return drawAdd("Укажи название компании.");
     if(!/^(\d{10}|\d{12})$/.test(inn))return drawAdd("ИНН — 10 цифр для компании или 12 для ИП.");
     const ex=LEADS[inn];
     if(ex&&!ex.closed)return drawAdd(`Клиент уже в работе: <b>${esc(ex.name)}</b>. Открой его во вкладке «Клиенты».`);
@@ -928,8 +968,9 @@ function drawImport(){
       const r=await runImport(rows,true);IMP={src:rows,res:r};drawImport();
     }catch(e){IMP={src:null,res:{err:"Не удалось прочитать файл ("+((e&&e.message)||e)+"). Можно вставить таблицу текстом."}};drawImport();}};
   document.getElementById("impcheck").onclick=async()=>{const t=document.getElementById("imp").value;if(!t.trim())return;const r=await runImport(t,true);IMP={src:t,res:r};drawImport();};
-  document.getElementById("impgo").onclick=async()=>{if(!can)return;const r=await runImport(IMP.src,false);IMP=null;
-    toast("Добавлено: "+r.added+(r.upd?", обновлено: "+r.upd:""));ADDMODE="one";TAB="today";SEG="new";CUR=null;draw();};
+  document.getElementById("impgo").onclick=async()=>{if(!can||IMP.busy)return;IMP.busy=true;const bt=document.getElementById("impgo");bt.classList.add("dis");
+    const r=await runImport(IMP.src,false,(d,n)=>{bt.textContent="Сохраняю… "+d+" из "+n;});IMP=null;
+    toast(r.failed?("Сохранено с ошибками: не записалось "+r.failed+" из "+(r.added+r.upd)):"Добавлено: "+r.added+(r.upd?", обновлено: "+r.upd:""));ADDMODE="one";TAB="today";SEG="new";CUR=null;draw();};
 }
 
 // ---------- Приветствие ----------
@@ -948,11 +989,27 @@ function drawWelcome(){
 }
 
 // ===================== Навигация =====================
-function startNext(){const d=todayData(),l=d.up||d.over[0]||d.todayL[0]||d.nw[0];if(!l){toast("Нет звонков на сегодня");return;}startCall(l.inn);}
+function pickList(q){const d=todayData(),seen=new Set(),out=[];
+  [d.up,...d.todayL,...d.over,...d.nw,...d.nod,...d.soon,...d.act].forEach(l=>{if(l&&!seen.has(l.inn)){seen.add(l.inn);out.push(l);}});
+  q=(q||"").trim().toLowerCase();
+  const r=q?out.filter(l=>(l.name+" "+l.inn+" "+(l.fio||"")).toLowerCase().includes(q)):out;
+  return {r:r.slice(0,40),all:r.length};}
+function pickRows(q){const {r,all}=pickList(q),t=iso(today());
+  return (r.map(l=>`<button class="opt" type="button" data-startcall="${esc(l.inn)}"><span>${esc(shortName(l.name))}<small>${esc([isNew(l)?"новый":(l.next?(l.next<t?"просрочен · ":"")+whenTxt(l):"без даты"),fioShort(l.fio)].filter(Boolean).join(" · "))}</small></span>${IC.chev}</button>`).join("")||`<p class="mut pad">Никого не нашли.</p>`)+(all>r.length?`<p class="mut pad">Показаны первые ${r.length} из ${all}. Уточни поиск.</p>`:"");}
+function startNext(){closeOv();
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Кому звоним?</b><small>Выбери клиента или добавь нового</small></div></div>
+    <button class="btn" type="button" data-picknew style="margin:14px 0 10px">+ Новый клиент</button>
+    <div class="search">${IC.search}<input id="pk_q" placeholder="Компания, ИНН или ФИО" aria-label="Поиск"></div>
+    <div class="opts" id="pk_l" style="margin-top:10px">${pickRows("")}</div></div>`;
+  document.body.appendChild(o);
+  o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  document.getElementById("pk_q").addEventListener("input",e=>{document.getElementById("pk_l").innerHTML=pickRows(e.target.value);});
+}
 function draw(){
   clearInterval(TM);closeOv();
   const welcome=!PROFILE.done&&!CALL&&!CUR;
-  document.body.classList.toggle("deep",!!(CUR||CALL||TAB==="add"||welcome));
+  document.body.classList.toggle("deep",!!(CUR||CALL||TAB==="add"||welcome||SEL));
   document.querySelectorAll(".tab[data-tab]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.tab===TAB&&!CALL&&!CUR)));
   if(welcome)return drawWelcome();
   if(CALL)return drawCall();
@@ -968,6 +1025,19 @@ document.addEventListener("click",ev=>{
   if(c("[data-profile]"))return openProfile();
   const tb=c(".tab[data-tab]");if(tb)return setTab(tb.dataset.tab);
   if(c("[data-act=call]"))return startNext();
+  if(c("[data-askyes]")){const f=DEL_YES;DEL_YES=null;closeOv();if(f)f();return;}
+  if(c("[data-selmode]")){SEL=new Set();return draw();}
+  if(c("[data-selcancel]")){SEL=null;return draw();}
+  const sr=c("[data-selrow]");if(sr){const k=sr.dataset.selrow;SEL.has(k)?SEL.delete(k):SEL.add(k);sr.querySelector(".ck").classList.toggle("on",SEL.has(k));return updSelBar();}
+  if(c("[data-selall]")){const allOn=SELVIS.length&&SELVIS.every(x=>SEL.has(x));SELVIS.forEach(x=>allOn?SEL.delete(x):SEL.add(x));return FILL&&FILL();}
+  if(c("[data-seldel]")){const ids=[...SEL].filter(x=>LEADS[x]);if(!ids.length)return;
+    const nm=ids.slice(0,3).map(x=>shortName(LEADS[x].name)).join(", ")+(ids.length>3?" и ещё "+(ids.length-3):"");
+    return askDel("Удалить "+ids.length+" "+pl(ids.length,["клиента","клиента","клиентов"])+"?",nm,async()=>{
+      let pos=0,fail=0;const w=async()=>{while(pos<ids.length){const k=ids[pos++];try{await delLead(k);}catch{fail++;}}};
+      await Promise.all([w(),w(),w(),w(),w()]);SEL=null;toast(fail?"Удалено с ошибками: "+fail:"Удалено: "+(ids.length-fail));draw();});}
+  const dy=c("[data-delyes]");if(dy){const inn=dy.dataset.delyes,nm=(LEADS[inn]||{}).name||"";return delLead(inn).then(()=>{closeOv();CUR=null;CALL=null;toast("Удалено: "+nm);draw();});}
+  if(c("[data-del]"))return confirmDel(CUR);
+  if(c("[data-picknew]")){closeOv();ADDMODE="one";IMP=null;return setTab("add");}
   if(c("[data-imp]")){ADDMODE="list";IMP=null;return setTab("add");}
   if(c("[data-addclose]")){ADDMODE="one";IMP=null;return setTab("today");}
   const am=c("[data-addmode]");if(am){ADDMODE=am.dataset.addmode;IMP=null;return drawAdd();}
