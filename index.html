@@ -263,7 +263,7 @@ body.deep .demo{display:none}
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 22 · 23.10 12:35</p>
+  <p class="demo" id="ver">версия 22 · 23.10 15:10</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -926,7 +926,7 @@ function drawCall(){clearInterval(TM);
   const l=LEADS[CALL.inn],cur=CALL.hist[CALL.hist.length-1];theme=cur.theme;if(theme==="custom"&&!THEMES.custom)THEMES.custom=mkCustom(CALL.tt||l.themeText||"другая тема",CALL.hk||"");const n=N[cur.id];
   if(n.end)return drawEnd(l,cur,n);
   const th=theme&&THEMES[theme]?THEMES[theme].name:"",ph=phonesOf(l)[0],hook=(l.hooks||[])[0];
-  const isTh=cur.id==="themeA"||cur.id==="themeB";const opts=cur.id==="start"?n.opts:n.opts.concat([isTh?["Другая тема","custom","своя тема и зацепка"]:cur.id==="exits"?["Другой человек","who","кто это и как на него выйти"]:["Другое","other"]]);
+  const isTh=cur.id==="themeA"||cur.id==="themeB";const opts=cur.id==="start"?n.opts:n.opts.concat([isTh?["Другая тема","@custom","своя тема и зацепка"]:cur.id==="exits"?["Другой человек","@who","кто это и как на него выйти"]:["Другое","other"]]);
   main.innerHTML=`<div class="ch"><button class="ib" type="button" data-callclose aria-label="Закрыть">${IC.x}</button><div class="ct">${esc(shortName(l.name))}${th?" · "+esc(th):""}</div><div class="tm" id="tm">00:00</div></div>
     <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}<button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
     <div class="prog">${Array.from({length:5},(_,i)=>`<i class="${i<Math.min(CALL.hist.length,5)?"on":""}"></i>`).join("")}</div>
@@ -1210,7 +1210,7 @@ document.addEventListener("click",ev=>{
   if(c("[data-callclose]")){const inn=CALL.inn;CALL=null;CUR=inn;return draw();}
   if(CALL){
     const nx=c("[data-next]");
-    if(nx){if(nx.dataset.next==="custom")return askTheme(CALL.hist[CALL.hist.length-1].id);if(nx.dataset.next==="who")return askWho();const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);return;}
+    if(nx){if(nx.dataset.next==="@custom")return askTheme(CALL.hist[CALL.hist.length-1].id);if(nx.dataset.next==="@who")return askWho();const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);return;}
     if(c("[data-callback]")){if(CALL.hist.length>1){CALL.hist.pop();drawCall();}else{const inn=CALL.inn;CALL=null;CUR=inn;draw();}}
   }
 });
