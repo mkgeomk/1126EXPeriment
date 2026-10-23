@@ -118,9 +118,10 @@ h1.cn{font:700 28px/1.12 Inter,sans-serif;letter-spacing:-.02em;margin:8px 0 4px
 .f textarea{height:auto;padding:12px 16px;min-height:76px;resize:vertical;line-height:1.4}
 .f input::placeholder,.f textarea::placeholder{color:#666}
 .f input:focus,.f textarea:focus,.f select:focus{box-shadow:0 0 0 1.5px var(--acc)}
-.f input[type=date],.f input[type=time]{display:block;text-align:left}
+.f input[type=date],.f input[type=time]{display:flex;align-items:center;text-align:left;line-height:normal;min-height:48px}
+.f input[type=date]::-webkit-date-and-time-value,.f input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.4em}
 .f.sm input,.f.sm select{height:42px;border-radius:12px;font-size:14px}
-.f .two{display:flex;gap:8px}
+.f.two,.f .two{display:flex;gap:10px;align-items:flex-start}.f.two[hidden]{display:none}.f.two>div{min-width:0}
 details.mo{margin-top:16px}
 details.mo summary{color:var(--acc);font:600 14px Inter,sans-serif;cursor:pointer;list-style:none}
 details.mo summary::-webkit-details-marker{display:none}
@@ -206,6 +207,8 @@ body.deep .demo{display:none}
 
 .ck{width:24px;height:24px;border-radius:50%;border:2px solid #555;flex:none;display:grid;place-items:center;margin-right:2px}.ck.on{background:var(--acc);border-color:var(--acc)}.ck.on:after{content:"✓";color:#140a02;font-weight:800;font-size:14px;line-height:1}
 
+.phr{display:flex;gap:8px;align-items:center;margin-top:8px}.phr input{flex:1}.xph{width:42px;height:42px;border-radius:50%;background:var(--s2);border:0;color:var(--fg);display:grid;place-items:center;flex:none;padding:0;cursor:pointer}.xph svg{width:18px;height:18px}
+
 </style>
 <style>
 #splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease;touch-action:manipulation}
@@ -260,7 +263,7 @@ body.deep .demo{display:none}
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 18 · 22.10 16:30</p>
+  <p class="demo" id="ver">версия 22 · 23.10 12:35</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -314,7 +317,7 @@ const own = t => ({own:t});                                    // пометка
 const themeOpts = next => Object.entries(THEMES).map(([k,t]) => [t.name, next, t.hint, k]);
 const N = {
   start:{label:"Начало", q:"Какой это звонок?",
-    opts:[["Первый звонок в компанию","themeA","ГД, ФД или общая линия"],["Повторный звонок ЛПР","themeB","после 2-го звонка, видео или письма"],["Ищу новый выход на компанию","exits","контакт не найден, отказали, не соединили"]]},
+    opts:[["Первый звонок в компанию","themeA","ГД, ФД или общая линия"],["Повторный звонок ЛПР","themeB","после 2-го звонка, видео или письма"],["Ищу новый выход на компанию","exits","контакт не найден, отказали, не соединили"],["Банк отказал клиенту","bankNo","СБ, риски, юристы, комитет"]]},
   themeA:{label:"Тема", q:"За что зацепился при подготовке?", say:["Тема определяет, о чём спрашивать ГД и ФД. Подсказки — в таблице «Как выбрать тему» ниже."], opts:themeOpts("dial")},
   themeB:{label:"Тема", q:"О чём договаривались в прошлый раз?", opts:themeOpts("lprRe")},
 
@@ -409,6 +412,15 @@ const N = {
   rNet:{label:"НЕТ", end:{status:"Отказ",cls:"stop",tag:"НЕТ + дата перезвона",next:"Другой заход через 14 дней: другой вопрос, другая тема, другое время",
     note:"Возражение в начале разговора — реакция на незнакомый звонок, а не решение.",go:[["Другой контакт в компании →","exits"]]}},
 
+  bankNo:{label:"Отказ банка", q:"Кто в банке отказал?",
+    say:["Причину фиксируй так, как её сообщили внутри банка. Что и как сказать клиенту — согласуй с руководителем отдела."],
+    opts:[["Служба безопасности","bkSb"],["Риски","bkRisk"],["Юристы","bkLaw"],["Кредитный комитет / акционер","bkCom"],["Другая причина","bkOth"]]},
+  bkSb:{label:"БАНК-СБ", end:{status:"Отказ банка",cls:"stop",tag:"БАНК-СБ + что сообщили",next:"Клиент в архиве; напоминание — только если назвали дату пересмотра",note:"Отказ банка, а не клиента: в карточку — кто отказал и что сообщили."}},
+  bkRisk:{label:"БАНК-РИСК", end:{status:"Отказ банка",cls:"stop",tag:"БАНК-РИСК + что сообщили",next:"Клиент в архиве; напоминание — только если назвали дату пересмотра",note:"Отказ банка, а не клиента: в карточку — кто отказал и что сообщили."}},
+  bkLaw:{label:"БАНК-ЮР", end:{status:"Отказ банка",cls:"stop",tag:"БАНК-ЮР + что сообщили",next:"Клиент в архиве; напоминание — только если назвали дату пересмотра",note:"Отказ банка, а не клиента: в карточку — кто отказал и что сообщили."}},
+  bkCom:{label:"БАНК-КОМ", end:{status:"Отказ банка",cls:"stop",tag:"БАНК-КОМ + что сообщили",next:"Клиент в архиве; напоминание — только если назвали дату пересмотра",note:"Отказ банка, а не клиента: в карточку — кто отказал и что сообщили."}},
+  bkOth:{label:"БАНК", end:{status:"Отказ банка",cls:"stop",tag:"БАНК + что сообщили",next:"Клиент в архиве; напоминание — только если назвали дату пересмотра",note:"Отказ банка, а не клиента: в карточку — кто отказал и что сообщили."}},
+
   obj:{label:"Возражение", q:"Какое возражение?",
     say:["Структура ответа: согласие → обоснование → вопрос → следующий шаг. Не перечислять продукты, не называть ставки, не ругать другие банки. После двух возражений подряд без продвижения — корректно завершить."],
     opts:[["«У нас определён пул банков»","oPul"],["«Потребности нет, всё хорошо»","oNet"],["«Спасибо, не интересно»","oNi"],["«У нас есть специально обученные люди»","oPeople"],["«Пришлите на почту»","mail"],["«Нет времени»","notime"]]},
@@ -424,7 +436,7 @@ const N = {
   oPeople:{label:"Есть люди", q:"Назвал имя ответственного?",
     say:["«Уверен, у вас работают лучшие специалисты. Но всё быстро меняется: вчера мне нечего было вам предложить, сегодня условия такие, что вы сами захотите посмотреть. Скажите хотя бы имя этого человека, я с ним поделюсь»."],
     opts:[["Да","gdfd"],["Нет","exits"]]},
-  sbros:{label:"СБРОС", end:{status:"Отказ",cls:"stop",tag:"СБРОС + дата перезвона",next:"Перезвон через 2 недели другим заходом: другой вопрос, другой контакт, другое время дня",
+  sbros:{label:"СБРОС", end:{status:"Отказ",cls:"stop",tag:"СБРОС + дата перезвона",next:"Перезвон через 14 дней другим заходом: другой вопрос, другой контакт, другое время дня",
     note:"Отказ относится к банку, а не к тебе лично.",go:[["Другой контакт в компании →","exits"]]}},
 
   // ---------- Новый выход на компанию ----------
@@ -508,7 +520,7 @@ function calUrl(l, date, what){
 }
 
 // ===================== Исходы дерева: закрытие и срок по умолчанию =====================
-const CLOSE = {rKonk:"Отказ",rPul:"Отказ",rUsl:"Отказ",rNet:"Отказ",sbros:"Отказ",needOk:"Передан в сделку (КП)"};
+const CLOSE = {rKonk:"Отказ",rPul:"Отказ",rUsl:"Отказ",rNet:"Отказ",sbros:"Отказ",needOk:"Передан в сделку (КП)",bkSb:"Отказ банка",bkRisk:"Отказ банка",bkLaw:"Отказ банка",bkCom:"Отказ банка",bkOth:"Отказ банка"};
 const DUE = {nd12:2,nd3:1,gdfdLater:1,gotContact:1,mailOnly:3,soft:7,needNo:7,termsNo:30,holdEx:30,hold:90,
              rKonk:COOLDOWN_DAYS,rPul:COOLDOWN_DAYS,rUsl:COOLDOWN_DAYS,rNet:COOLDOWN_DAYS,sbros:COOLDOWN_DAYS,needOk:3};
 
@@ -610,9 +622,10 @@ const shortName=n=>String(n).replace(/^(ООО|АО|ПАО|ЗАО|ИП|ОАО)\s
 const fioShort=f=>{const p=String(f||"").trim().split(/\s+/).filter(Boolean);return p.length>=2?p[0]+" "+p.slice(1).map(x=>x[0].toUpperCase()+".").join(""):(f||"");};
 function fmtPhone(raw){const d=String(raw).replace(/\D/g,"");return (d.length===11&&(d[0]==="7"||d[0]==="8"))?`+7 ${d.slice(1,4)} ${d.slice(4,7)}-${d.slice(7,9)}-${d.slice(9)}`:String(raw);}
 function telHref(raw){let d=String(raw).replace(/\D/g,"");if(d.length===11&&d[0]==="8")d="7"+d.slice(1);return "tel:+"+d;}
-const stShort=s=>({"Назначен 2-й звонок":["2-й звонок","o"],"Назначена встреча":["Встреча","g"],"Назначена видео-встреча":["Видео","g"],"Отправить КП":["КП","g"],"Сделать холодный звонок":["Холодный","m"],"Уточнить контакт":["Контакт","m"],"ХОЛД":["ХОЛД","m"],"Новый клиент":["Новый","m"],"Отказ":["Отказ","r"],"Передан в сделку (КП)":["КП","g"]}[s]||[s||"—","m"]);
+const stShort=s=>({"Назначен 2-й звонок":["2-й звонок","o"],"Назначена встреча":["Встреча","g"],"Назначена видео-встреча":["Видео","g"],"Отправить КП":["КП","g"],"Сделать холодный звонок":["Холодный","m"],"Уточнить контакт":["Контакт","m"],"ХОЛД":["ХОЛД","m"],"Новый клиент":["Новый","m"],"Отказ":["Отказ","r"],"Отказ банка":["Отказ банка","r"],"Передан в сделку (КП)":["КП","g"]}[s]||[s||"—","m"]);
 const pillH=(t,c)=>`<span class="pill p-${c}">${esc(t)}</span>`;
 const tagTok=t=>{const m=String(t||"").match(/^[А-ЯЁA-Z0-9\-]+/);return m?m[0]:"";};
+const coolOf=l=>l.closed&&typeof l.closed.cool==="number"?l.closed.cool:COOLDOWN_DAYS;   // «Отказ банка» — без паузы
 function whenTxt(l){const t=iso(today());if(!l.next)return "—";if(l.next===t)return l.nextTime||"сегодня";if(l.next<t){const d=daysBetween(l.next,t);return d===1?"вчера":dm(l.next);}return dm(l.next)+(l.nextTime?" "+l.nextTime:"");}
 function subLine(l){return [fioShort(l.fio),tagTok(l.tag),l.reg].filter(Boolean).join(" · ");}
 function inTxt(tm){const [h,m]=tm.split(":").map(Number),d=new Date();const diff=h*60+m-(d.getHours()*60+d.getMinutes());if(diff<=0)return "сейчас";if(diff<60)return "через "+diff+" мин";return "через "+Math.floor(diff/60)+" ч"+(diff%60?" "+diff%60+" мин":"");}
@@ -665,9 +678,10 @@ function todayData(){const t=iso(today()),act=active().filter(l=>!isNew(l));
     over=act.filter(l=>l.next&&l.next<t).sort((a,b)=>a.next.localeCompare(b.next)||byTime(a,b)),
     nod=act.filter(l=>!l.next),
     soon=act.filter(l=>l.next>t&&l.next<=addDays(3)).sort((a,b)=>a.next.localeCompare(b.next)||byTime(a,b)),
-    nw=active().filter(isNew);
+    nw=active().filter(isNew),
+    rv=Object.values(LEADS).filter(l=>l.closed&&l.closed.rem&&l.closed.rem<=t).sort((a,b)=>a.closed.rem.localeCompare(b.closed.rem));
   const nowS=nowHM(),up=todayL.find(l=>!l.nextTime||l.nextTime>=nowS)||null;
-  return {todayL,over,nod,soon,nw,up,act};}
+  return {todayL,over,nod,soon,nw,up,act,rv};}
 function fillToday(){
   const el=document.getElementById("tl");if(!el)return;
   const v=QTXT.trim().toLowerCase();
@@ -675,7 +689,7 @@ function fillToday(){
     el.innerHTML=res.length?`<div class="lst">${res.map(l=>rowH(l,l.closed?{pill:["Архив","m"],rightB:"архив"}:{})).join("")}</div>`:`<p class="mut pad">Ничего не найдено.</p>`;return;}
   const d=todayData();
   if(SEG==="new"){el.innerHTML=newHtml(d.nw);return;}
-  const {todayL,over,nod,soon,up,act}=d;
+  const {todayL,over,nod,soon,up,act,rv}=d;
   let hero="";
   if(up){const hook=(up.hooks||[])[0],idx=todayL.indexOf(up)+1;
     hero=`<div class="hero"><div class="hh"><span class="dot"></span>СЛЕДУЮЩИЙ ЗВОНОК<small>${idx} из ${todayL.length} сегодня</small></div>
@@ -686,11 +700,11 @@ function fillToday(){
   } else hero=`<div class="hero"><div class="hh"><span class="dot" style="background:#444"></span><span class="mut">СЛЕДУЮЩИЙ ЗВОНОК</span></div>
       <div class="hn" style="font-size:22px;margin-top:10px">На сегодня звонков нет</div>
       ${over.length?`<div class="hs" style="margin:6px 0 0">Просрочено: ${over.length} <button class="lnk" type="button" data-filt="over">→ открыть</button></div>`:`<div class="hs" style="margin:6px 0 0">Добавь клиента кнопкой «Добавить».</div>`}</div>`;
-  const cnt={today:todayL.length+nod.length,over:over.length};
+  const cnt={today:todayL.length+nod.length+rv.length,over:over.length};
   const chip=(k,t,n,red)=>`<button type="button" data-filt="${k}" class="${FILT===k?"on":""}">${t}${n!=null?` <b${red&&n>0&&FILT!==k?' class="r"':""}>${n}</b>`:""}</button>`;
   const chips=`<div class="chips">${chip("today","Сегодня",cnt.today)}${chip("over","Просрочено",cnt.over,true)}${chip("all","Все звонки",act.length)}</div>`;
   let list;
-  if(FILT==="today")list=todayL.map(l=>rowH(l)).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"})));
+  if(FILT==="today")list=todayL.map(l=>rowH(l)).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"}))).concat(rv.map(l=>rowH(l,{pill:["Пересмотр","o"],rightB:dm(l.closed.rem),sub:"Отказ банка · "+(tagTok(l.tag)||"БАНК")})));
   else if(FILT==="over")list=over.map(l=>rowH(l));
   else if(FILT==="3d")list=soon.map(l=>rowH(l));
   else list=act.slice().sort((a,b)=>(a.next||"9").localeCompare(b.next||"9")||byTime(a,b)).map(l=>rowH(l));
@@ -747,7 +761,7 @@ function drawArchive(){
   const t=iso(today());
   SELVIS=all.filter(l=>ARCH_F==="all"||g(l)===ARCH_F).map(l=>l.inn);FILL=drawArchive;
   const rows=all.filter(l=>ARCH_F==="all"||g(l)===ARCH_F).map(l=>{
-    const back=addDays(COOLDOWN_DAYS,l.closed.date),left=daysBetween(t,back),code=tagTok(l.tag)||(g(l)==="В КП"?"КП":"Отказ");
+    const back=addDays(coolOf(l),l.closed.date),left=daysBetween(t,back),code=tagTok(l.tag)||(g(l)==="В КП"?"КП":"Отказ");
     const open=ARCH_OPEN===l.inn;
     if(SEL)return selRowH(l,left>0?"снова можно с "+dm(back):"можно вернуть в работу");
     return `<div><button class="row" type="button" data-archopen="${esc(l.inn)}"><span class="av">${esc(ini(l.name))}</span><span class="rm"><b>${esc(l.name)}</b><small>${esc(left>0?"снова можно с "+dm(back):"можно вернуть в работу")}</small></span><span class="rr"><b>${left>0?"через "+left+" дн":"готов"}</b></span>${pillH(code,g(l)==="В КП"?"g":"m")}</button>
@@ -757,7 +771,7 @@ function drawArchive(){
    (all.length?`<div class="chips"><button type="button" data-archf="all" class="${ARCH_F==="all"?"on":""}">Все ${all.length}</button>${Object.keys(cnt).map(k=>`<button type="button" data-archf="${k}" class="${ARCH_F===k?"on":""}">${k} ${cnt[k]}</button>`).join("")}</div>`:"")+
    `<div class="lst">${rows||`<p class="mut pad">Закрытых клиентов пока нет. Отказ после звонка переносит клиента сюда.</p>`}</div>${SEL?selBar():""}`;
 }
-async function returnLead(inn){const l=LEADS[inn];if(!l||!l.closed)return;const back=addDays(COOLDOWN_DAYS,l.closed.date);
+async function returnLead(inn){const l=LEADS[inn];if(!l||!l.closed)return;const back=addDays(coolOf(l),l.closed.date);
   if(iso(today())<back){toast("Снова можно с "+ru(back));return;}
   l.hist=l.hist||[];l.hist.push({d:iso(today()),st:"Возврат в работу",c:`после закрытия ${ru(l.closed.date)}: ${l.closed.reason}`});
   l.closed=null;l.status="Сделать холодный звонок";l.next=iso(today());l.nextTime="";l.nextWhat="первый звонок после возврата";
@@ -773,14 +787,14 @@ function drawLead(inn){
   const t=iso(today()),h=l.hist||[],calls=h.filter(x=>x.st!=="Занесено в Callex"&&x.st!=="Возврат в работу");
   const last=h.slice(-1)[0],since=statusSince(l),dSince=daysBetween(since,t);
   const lastD=last?daysBetween(last.d,t):null;
-  const tags=[...(l.theme&&THEMES[l.theme]?[THEMES[l.theme].name]:[]),tagTok(l.tag),l.closed?l.closed.status:stShort(l.status)[0]].filter(Boolean);
+  const tags=[...(l.theme==="custom"&&l.themeText?[l.themeText]:l.theme&&THEMES[l.theme]?[THEMES[l.theme].name]:[]),tagTok(l.tag),l.closed?l.closed.status:stShort(l.status)[0]].filter(Boolean);
   const isN=isNew(l),wd=isN?workdays(since,t):0;
   const tag3=[...new Set(calls.map(x=>tagTok(x.tag)).filter(Boolean))].slice(0,3).join(", ");
   const tiles=`<div class="tiles"><div class="tile"><small>Последний контакт</small><b>${last?esc(dm(last.d)):"—"}</b><em>${last?(lastD===0?"сегодня":lastD+" дн. назад"):"контактов не было"}</em></div>
     <div class="tile"><small>Звонков</small><b>${calls.length}</b><em>${esc(tag3||"—")}</em></div>
     <div class="tile"><small>В статусе</small><b>${isN?wd+" раб. дн.":dSince+" дн."}</b>${isN?`<em class="${wd>NEW_LIMIT?"warn":"ok"}">норма ${NEW_LIMIT}</em>`:`<em>&nbsp;</em>`}</div></div>`;
   const hookNow=(l.hooks||[]).filter(x=>x.d&&x.d<=t);
-  const stepBlock=l.closed?`<div class="note"><b>Итог:</b> ${esc(l.closed.reason)}<br><span class="mut">Закрыт ${ru(l.closed.date)}. Добавить снова можно с ${ru(addDays(COOLDOWN_DAYS,l.closed.date))}.</span></div>`:
+  const stepBlock=l.closed?`<div class="note"><b>Итог:</b> ${esc(l.closed.reason)}<br><span class="mut">Закрыт ${ru(l.closed.date)}. ${coolOf(l)?"Добавить снова можно с "+ru(addDays(coolOf(l),l.closed.date))+".":"Вернуть в работу можно в любой момент."}${l.closed.rem?" Напоминание: "+ru(l.closed.rem)+".":""}</span></div>`:
     EDIT_STEP?`<form novalidate id="stf" class="step" style="flex-direction:column;align-items:stretch;gap:0"><div class="f" style="margin-top:0"><label for="e_w">Что делаем</label><input id="e_w" value="${esc(l.nextWhat||"")}" placeholder="Например: перезвонить ФД"></div>
       <div class="f two"><div style="flex:1"><label for="e_d">Дата</label><input id="e_d" type="date" value="${esc(l.next||"")}"></div><div style="flex:1"><label for="e_t">Время</label><input id="e_t" type="time" value="${esc(l.nextTime||"")}"></div></div>
       <div style="display:flex;gap:8px;margin-top:12px"><button class="gbtn" type="button" data-editcancel style="flex:1">Отмена</button><button class="btn" type="submit" style="flex:1;height:44px;font-size:14px">Сохранить</button></div></form>`:
@@ -800,7 +814,7 @@ function drawLead(inn){
     ${(l.rev!=null||l.imp!=null||l.exp!=null)?`<p class="sub" style="margin-top:4px">${[["выручка",l.rev],["импорт",l.imp],["экспорт",l.exp]].filter(x=>typeof x[1]==="number"&&x[1]>=0.005).map(x=>x[0]+" "+FMT_B(x[1])).join(" · ")}${l.reg?(" · "+esc(l.reg)):""}</p>`:""}
     <div class="tags">${tags.map(x=>`<span class="tg">${esc(x)}</span>`).join("")}</div>
     ${tiles}${stepBlock}${hooks}${contacts}${hist}
-    <div style="text-align:center;margin:28px 0 8px"><button class="lnk" type="button" data-del style="color:var(--bad)">Удалить клиента</button></div>
+    <div style="text-align:center;margin:28px 0 8px">${l.closed?"":`<button class="lnk" type="button" data-banko style="display:block;margin:0 auto 14px">Отказ банка</button>`}<button class="lnk" type="button" data-del style="color:var(--bad)">Удалить клиента</button></div>
     <div class="bar">${l.closed?`<button class="btn" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`:`<button class="btn" type="button" data-startcall="${esc(l.inn)}">Начать звонок</button>${l.next?`<button class="rb" type="button" data-cal aria-label="В календарь">${IC.cal}</button>`:""}`}${last?`<button class="rb" type="button" data-exp aria-label="Скопировать итог">${IC.copy}</button>`:""}</div>`;
   const redo=()=>drawLead(inn);
   main.querySelectorAll("[data-delhook]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delhook;askDel("Удалить зацепку?",(l.hooks[i]||{}).t||"",async()=>{l.hooks.splice(i,1);await save(l);redo();});});
@@ -815,6 +829,71 @@ function drawLead(inn){
 }
 
 let DEL_YES=null;
+// ---------- Другая тема звонка ----------
+const mkCustom=(text,hook)=>({name:text,hint:"",gd:"вопросы по теме «"+text+"»",zone:"вы отвечаете за финансы и банковское обслуживание",own:true,
+  fact:["«Изучил вашу компанию, вижу, что "+(hook||"[факт из подготовки]")+". Как у вас сейчас устроен вопрос: "+text+"?» [слушаем]"],
+  topic:"теме «"+text+"»",why:"«Понял вас. Подскажите, что для вас сейчас важнее всего по этому вопросу — чтобы я понимал, с чем к вам вернуться?»"});
+function askWho(){closeOv();
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Другой человек</b><small>Кого пробуешь и как на него выйти</small></div></div>
+    <div class="f"><label for="wh_t">Кто это (обязательно)</label><input id="wh_t" placeholder="Например: главбух Ольга, через почту"></div>
+    <button class="btn" type="button" id="wh_go" style="margin-top:16px">Продолжить</button>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  o.querySelector("#wh_t").focus();
+  o.querySelector("#wh_go").onclick=()=>{const t=o.querySelector("#wh_t").value.trim();if(!t)return toast("Напиши, кого пробуешь");
+    const cur=CALL.hist[CALL.hist.length-1];CALL.who=t;CALL.hist.push({id:"exEmp",theme:cur.theme});closeOv();drawCall();window.scrollTo(0,0);};
+}
+function askTheme(id){closeOv();
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Другая тема</b><small>Подставится в фразы вместо готовых тем</small></div></div>
+    <div class="f"><label for="th_t">Тема (обязательно)</label><input id="th_t" placeholder="Например: ESG, экспорт в Китай, лизинг"></div>
+    <div class="f"><label for="th_h">Зацепка (необязательно)</label><input id="th_h" placeholder="Что заметил при подготовке"></div>
+    <button class="btn" type="button" id="th_go" style="margin-top:16px">Продолжить</button>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  o.querySelector("#th_t").focus();
+  o.querySelector("#th_go").onclick=()=>{const t=o.querySelector("#th_t").value.trim(),h=o.querySelector("#th_h").value.trim();
+    if(!t)return toast("Напиши тему");
+    const nx=N[id].opts[0][1];THEMES.custom=mkCustom(t,h);CALL.tt=t;CALL.hk=h;
+    CALL.hist.push({id:nx,theme:"custom"});closeOv();drawCall();window.scrollTo(0,0);};
+}
+
+// ---------- Отказ банка (из карточки клиента) ----------
+const BANK_TAGS=[["БАНК-СБ","Служба безопасности"],["БАНК-РИСК","Риски"],["БАНК-ЮР","Юристы"],["БАНК-КОМ","Комитет / акционер"],["БАНК","Другая причина"]];
+const addMonths=n=>{const d=today();d.setMonth(d.getMonth()+n);return iso(d);};
+function openBankNo(inn){const l=LEADS[inn];if(!l||l.closed)return;closeOv();
+  let tag="",rem="",cust=false;
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Отказ банка</b><small>${esc(l.name)}</small></div></div>
+    <h2 class="sh">Кто отказал</h2><div class="tc" id="bk_t"></div>
+    <div class="f"><label for="bk_c">Что сообщили (обязательно)</label><input id="bk_c" placeholder="Например: СБ — не прошёл по бенефициарам"></div>
+    <h2 class="sh">Напомнить о пересмотре <span class="mut" style="font-weight:500;font-size:13px">· необязательно</span></h2>
+    <div class="gr" id="bk_d"></div>
+    <div class="f" id="bk_cu" style="margin-top:8px" hidden><input id="bk_dt" type="date" aria-label="Дата"></div>
+    <p class="sub" style="margin-top:10px">Клиент уйдёт в архив. Вернуть в работу можно в любой момент.</p>
+    <button class="btn" type="button" id="bk_save" style="margin-top:12px">Перенести в архив</button>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  const paint=()=>{
+    o.querySelector("#bk_t").innerHTML=BANK_TAGS.map(([t,n])=>`<button type="button" data-bkt="${t}" class="${tag===t?"on":""}">${n}</button>`).join("");
+    const ch=[[addMonths(1),"Через месяц"],[addMonths(3),"Через 3 мес."],[addMonths(6),"Через 6 мес."]],isC=rem&&!ch.some(x=>x[0]===rem);
+    o.querySelector("#bk_d").innerHTML=ch.map(([v,t])=>`<button type="button" data-bkd="${v}" class="${rem===v?"on":""}">${t}<small>${dm(v)}</small></button>`).join("")+`<button type="button" data-bkd="custom" class="${isC||cust?"on":""}">${isC?dm(rem):"Дата…"}<small>${isC?"выбрана":"&nbsp;"}</small></button>`;
+    o.querySelector("#bk_cu").hidden=!cust;};
+  paint();
+  o.addEventListener("click",e=>{
+    const t=e.target.closest("[data-bkt]");if(t){tag=tag===t.dataset.bkt?"":t.dataset.bkt;return paint();}
+    const d=e.target.closest("[data-bkd]");if(d){if(d.dataset.bkd==="custom")cust=!cust;else rem=rem===d.dataset.bkd?"":d.dataset.bkd;return paint();}});
+  o.querySelector("#bk_dt").addEventListener("input",e=>{rem=e.target.value;paint();});
+  o.querySelector("#bk_save").onclick=async()=>{
+    const c=o.querySelector("#bk_c").value.trim();
+    if(!tag)return toast("Выбери, кто отказал");
+    if(!c)return toast("Напиши, что сообщили");
+    l.tag=tag;l.status="Отказ банка";l.closed={status:"Отказ банка",reason:c,date:iso(today()),cool:0,rem:rem||""};
+    l.next=rem||"";l.nextTime="";l.nextWhat="пересмотр отказа банка";
+    l.hist=l.hist||[];l.hist.push({d:iso(today()),st:"Отказ банка",tag:tag,c:"Итог: "+c});
+    await save(l);closeOv();toast("Клиент перенесён в архив");CUR=l.inn;draw();};
+}
 function askDel(title,txt,yes){closeOv();DEL_YES=yes;
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>${esc(title)}</b><small>${esc(txt)}</small></div></div>
@@ -844,10 +923,10 @@ function lineHtml(x){
 const sayH=(arr,title)=>arr&&arr.length?`<div class="say"><i>${title}</i>${arr.map(lineHtml).join("")}</div>`:"";
 const optH=(t,nx,subt,th,cls)=>`<button class="opt ${cls||""}" type="button" data-next="${nx}"${th?` data-theme="${th}"`:""}><span>${esc(t)}${subt?`<small>${esc(subt)}</small>`:""}</span>${IC.chev}</button>`;
 function drawCall(){clearInterval(TM);
-  const l=LEADS[CALL.inn],cur=CALL.hist[CALL.hist.length-1];theme=cur.theme;const n=N[cur.id];
+  const l=LEADS[CALL.inn],cur=CALL.hist[CALL.hist.length-1];theme=cur.theme;if(theme==="custom"&&!THEMES.custom)THEMES.custom=mkCustom(CALL.tt||l.themeText||"другая тема",CALL.hk||"");const n=N[cur.id];
   if(n.end)return drawEnd(l,cur,n);
-  const th=theme?THEMES[theme].name:"",ph=phonesOf(l)[0],hook=(l.hooks||[])[0];
-  const opts=cur.id==="start"?n.opts:n.opts.concat([["Другое","other"]]);
+  const th=theme&&THEMES[theme]?THEMES[theme].name:"",ph=phonesOf(l)[0],hook=(l.hooks||[])[0];
+  const isTh=cur.id==="themeA"||cur.id==="themeB";const opts=cur.id==="start"?n.opts:n.opts.concat([isTh?["Другая тема","custom","своя тема и зацепка"]:cur.id==="exits"?["Другой человек","who","кто это и как на него выйти"]:["Другое","other"]]);
   main.innerHTML=`<div class="ch"><button class="ib" type="button" data-callclose aria-label="Закрыть">${IC.x}</button><div class="ct">${esc(shortName(l.name))}${th?" · "+esc(th):""}</div><div class="tm" id="tm">00:00</div></div>
     <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}<button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
     <div class="prog">${Array.from({length:5},(_,i)=>`<i class="${i<Math.min(CALL.hist.length,5)?"on":""}"></i>`).join("")}</div>
@@ -858,12 +937,12 @@ function drawCall(){clearInterval(TM);
   const tm=document.getElementById("tm"),tick=()=>{const s=Math.floor((Date.now()-CALL.t0)/1000);tm.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");};
   tick();TM=setInterval(tick,1000);window.scrollTo(0,0);
 }
-const TAGHELP={"НД-1":"Недозвон, 1-я попытка. Дальше повтор через 1–2 дня в другое время.","НД-2":"Недозвон, 2-я попытка.","НД-3":"Третий недозвон: «Уточнить контакт», не ХОЛД.","ГД-ФД":"Генеральный направил к финансовому. Запиши ФИО и контакт ФД.","ЛПР":"Состоялся разговор с принимающим решение.","ПУЛ":"Отказ: пул банков определён. Перезвон через 14 дней.","НЕТ":"Отказ: нет потребности. Перезвон через 14 дней.","УСЛ":"Отказ: не устроили условия — ставка, срок, обеспечение.","КОНК":"Отказ: выбрали конкурента. Укажи, какого.","СБРОС":"Бросили трубку. Перезвон через 2 недели другим заходом.","ХОЛД":"Клиент подходит, но не сейчас: причина и дата возврата, не больше 90 дней."};
+const TAGHELP={"БАНК-СБ":"Отказ банка: служба безопасности. Запиши, что сообщили.","БАНК-РИСК":"Отказ банка: риски. Запиши, что сообщили.","БАНК-ЮР":"Отказ банка: юристы. Запиши, что сообщили.","БАНК-КОМ":"Отказ банка: кредитный комитет или акционер.","БАНК":"Отказ банка по другой причине. Запиши, что сообщили.","НД-1":"Недозвон, 1-я попытка. Дальше повтор через 1–2 дня в другое время.","НД-2":"Недозвон, 2-я попытка.","НД-3":"Третий недозвон: «Уточнить контакт», не ХОЛД.","ГД-ФД":"Генеральный направил к финансовому. Запиши ФИО и контакт ФД.","ЛПР":"Состоялся разговор с принимающим решение.","ПУЛ":"Отказ: пул банков определён. Перезвон через 14 дней.","НЕТ":"Отказ: нет потребности. Перезвон через 14 дней.","УСЛ":"Отказ: не устроили условия — ставка, срок, обеспечение.","КОНК":"Отказ: выбрали конкурента. Укажи, какого.","СБРОС":"Бросили трубку. Перезвон через 14 дней другим заходом.","ХОЛД":"Клиент подходит, но не сейчас: причина и дата возврата, не больше 90 дней."};
 function hourLater(){const d=new Date(Date.now()+3600000),m=Math.ceil(d.getMinutes()/5)*5;if(m===60){d.setHours(d.getHours()+1);d.setMinutes(0);}else d.setMinutes(m);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
 function drawEnd(l,cur,n){
   const e=n.end,closing=CLOSE[cur.id],due=DUE[cur.id],mins=Math.max(1,Math.round((Date.now()-CALL.t0)/60000));
-  const defTag=tagTok(e.tag),refuse=["ПУЛ","НЕТ","УСЛ","КОНК","СБРОС"];
-  const tags=[...new Set([defTag,...(closing?refuse:["НД-1","ГД-ФД","ЛПР","ХОЛД"])].filter(Boolean))];
+  const defTag=tagTok(e.tag),refuse=["ПУЛ","НЕТ","УСЛ","КОНК","СБРОС"],bank=closing==="Отказ банка";
+  const tags=[...new Set([defTag,...(closing?(bank?BANK_TAGS.map(x=>x[0]):refuse):["НД-1","ГД-ФД","ЛПР","ХОЛД"])].filter(Boolean))];
   main.innerHTML=`<div class="back"><button class="ib" type="button" data-callback aria-label="Назад">${IC.back}</button><b style="font:600 16px Inter,sans-serif">Итог звонка</b><span style="width:42px"></span></div>
     <p class="sub" style="margin-top:8px">${esc(shortName(l.name))} · ${mins} мин</p>
     <h1 class="t" style="margin-top:4px">${esc(closing||e.status)}</h1>
@@ -871,19 +950,19 @@ function drawEnd(l,cur,n){
     ${sayH(e.say,"Что сказать / написать")}${e.note?`<p class="sub" style="margin-top:8px">${esc(e.note)}</p>`:""}
     <form novalidate id="savef">
       <input type="hidden" id="s_tag" value="${esc(defTag)}">
-      ${closing?`<div class="f"><label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="Например: КОНК — работают со Сбером, всё устраивает"></div><p class="sub" style="margin-top:6px">Клиент уйдёт в архив. Добавить снова можно через ${COOLDOWN_DAYS} дней.</p>`:""}
-      <h2 class="sh">${closing?"Дата перезвона":"Когда следующий шаг"} <span class="mut" style="font-weight:500;font-size:13px">${closing?"":"· необязательно"}</span></h2>
+      ${closing?`<div class="f"><label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="${bank?"Например: СБ — не прошёл по бенефициарам":"Например: КОНК — работают со Сбером, всё устраивает"}"></div><p class="sub" style="margin-top:6px">${bank?"Клиент уйдёт в архив. Вернуть в работу можно в любой момент.":"Клиент уйдёт в архив. Добавить снова можно через "+COOLDOWN_DAYS+" дней."}</p>`:""}
+      <h2 class="sh">${bank?"Напомнить о пересмотре":closing?"Дата перезвона":"Когда следующий шаг"} <span class="mut" style="font-weight:500;font-size:13px">${closing&&!bank?"":"· необязательно"}</span></h2>
       <div class="gr" id="datec"></div><div class="gr" id="timec"></div>
-      <div class="f two" id="cust" style="margin-top:8px" hidden><div style="flex:1"><input id="s_next" type="date" value="${due!=null?addDays(due):""}" aria-label="Дата"></div><div style="flex:1"><input id="s_nt" type="time" aria-label="Время"></div></div>
+      <div class="f two" id="cust" style="margin-top:8px" hidden><div id="cdw" style="flex:1"><input id="s_next" type="date" value="${due!=null?addDays(due):""}" aria-label="Дата"></div><div id="ctw" style="flex:1"><input id="s_nt" type="time" aria-label="Время"></div></div>
       <h2 class="sh">Комментарий</h2>
-      <div class="f" style="margin-top:0"><textarea id="s_c" rows="3" placeholder="Как для коллеги: кто, что сказал, о чём договорились"></textarea></div>
+      <div class="f" style="margin-top:0"><textarea id="s_c" rows="3" placeholder="Как для коллеги: кто, что сказал, о чём договорились">${CALL.who?esc("Пробовал: "+CALL.who+". "):""}</textarea></div>
       <h2 class="sh">Зацепка на следующий раз</h2>
       <div class="f" style="margin-top:0"><input id="s_hook" placeholder="Например: 30.10 у них совет директоров"></div>
       ${e.go?`<h2 class="sh">Или продолжить</h2><div class="opts">${e.go.map(([t,nx])=>optH(t,nx,"","","go")).join("")}</div>`:""}
       <div class="bar"><button class="btn" type="submit" id="savebtn">Сохранить</button></div>
     </form>`;
   const g=id=>(document.getElementById(id)||{}).value||"";
-  let CUST=false;
+  let CUSTD=false,CUSTT=false;
   const draw2=()=>{
     const tg=g("s_tag"),dn=g("s_next"),tn=g("s_nt"),t0=iso(today()),t1=addDays(1);
     let mon=1;for(;mon<9;mon++){const d=new Date(t0+"T00:00:00");d.setDate(d.getDate()+mon);if(mon>=2&&d.getDay()===1)break;}
@@ -893,31 +972,36 @@ function drawEnd(l,cur,n){
     const cd=(v,a,b)=>`<button type="button" data-ed="${v}" class="${dn===v?"on":""}">${a}<small>${b}</small></button>`;
     const isCustom=dn&&!quick.includes(dn);
     document.getElementById("datec").innerHTML=cd(t0,"Сегодня",wdOf(t0))+cd(t1,"Завтра",wdOf(t1)+" "+dm(t1))+cd(t3,wdOf(t3).charAt(0).toUpperCase()+wdOf(t3).slice(1),dm(t3))+
-      `<button type="button" data-ed="custom" class="${isCustom||CUST?"on":""}">${isCustom?esc(dm(dn)):"Дата…"}<small>${isCustom?"выбрана":"&nbsp;"}</small></button>`;
+      `<button type="button" data-ed="custom" class="${isCustom||CUSTD?"on":""}">${isCustom?esc(dm(dn)):"Дата…"}<small>${isCustom?"выбрана":"&nbsp;"}</small></button>`;
     const times=["11:00","15:00"],isC=tn&&tn!==hl&&!times.includes(tn);
     document.getElementById("timec").innerHTML=`<button type="button" data-etm="${hl}" class="${tn===hl?"on":""}">Через час<small>${hl}</small></button>`+times.map(x=>`<button type="button" data-etm="${x}" class="${tn===x?"on":""}">${x}<small>&nbsp;</small></button>`).join("")+
-      `<button type="button" data-etm="custom" class="${isC||CUST?"on":""}">${isC?esc(tn):"Время…"}<small>${isC?"выбрано":"&nbsp;"}</small></button>`;
-    document.getElementById("cust").hidden=!CUST;
+      `<button type="button" data-etm="custom" class="${isC||CUSTT?"on":""}">${isC?esc(tn):"Время…"}<small>${isC?"выбрано":"&nbsp;"}</small></button>`;
+    document.getElementById("cust").hidden=!(CUSTD||CUSTT);document.getElementById("cdw").hidden=!CUSTD;document.getElementById("ctw").hidden=!CUSTT;
     const eff=dn||(tn?t0:"");
     document.getElementById("savebtn").textContent="Сохранить"+(eff?" · "+wdOf(eff)+" "+dm(eff)+(tn?", "+tn:""):"");
+    if(bank){const m=n=>{const d=today();d.setMonth(d.getMonth()+n);return iso(d);};const ch=[[m(1),"Через месяц"],[m(3),"Через 3 мес."],[m(6),"Через 6 мес."]];const cu=dn&&!ch.some(x=>x[0]===dn);
+      document.getElementById("datec").innerHTML=ch.map(([v,t])=>`<button type="button" data-ed="${v}" class="${dn===v?"on":""}">${t}<small>${dm(v)}</small></button>`).join("")+`<button type="button" data-ed="custom" class="${cu||CUSTD?"on":""}">${cu?dm(dn):"Дата…"}<small>${cu?"выбрана":"&nbsp;"}</small></button>`;
+      document.getElementById("timec").innerHTML="";
+      document.getElementById("savebtn").textContent=dn?"В архив · напомню "+dm(dn):"Перенести в архив";}
   };
   draw2();
   const form=document.getElementById("savef");
-  form.addEventListener("click",ev=>{
+  const onSel=ev=>{
     const a=ev.target.closest("[data-et],[data-ed],[data-etm]");if(!a)return;
     if(a.dataset.et!==undefined){const s=document.getElementById("s_tag");s.value=s.value===a.dataset.et?"":a.dataset.et;}
-    else if(a.dataset.ed!==undefined){const s=document.getElementById("s_next");if(a.dataset.ed==="custom"){CUST=!CUST;}else s.value=s.value===a.dataset.ed?"":a.dataset.ed;}
-    else {const s=document.getElementById("s_nt");if(a.dataset.etm==="custom"){CUST=!CUST;}else s.value=s.value===a.dataset.etm?"":a.dataset.etm;}
-    draw2();});
+    else if(a.dataset.ed!==undefined){const s=document.getElementById("s_next");if(a.dataset.ed==="custom"){CUSTD=!CUSTD;}else s.value=s.value===a.dataset.ed?"":a.dataset.ed;}
+    else {const s=document.getElementById("s_nt");if(a.dataset.etm==="custom"){CUSTT=!CUSTT;}else s.value=s.value===a.dataset.etm?"":a.dataset.etm;}
+    draw2();};
+  form.addEventListener("click",onSel);document.getElementById("tagc").addEventListener("click",onSel);
   document.getElementById("s_next").addEventListener("input",draw2);document.getElementById("s_nt").addEventListener("input",draw2);
   form.onsubmit=async ev=>{ev.preventDefault();
     const gv=id=>((document.getElementById(id)||{}).value||"").trim();
-    l.theme=theme||l.theme;l.tag=gv("s_tag");l.status=closing||e.status;
+    l.theme=theme||l.theme;if(theme==="custom"){if(CALL.tt)l.themeText=CALL.tt;if(CALL.hk){l.hooks=l.hooks||[];l.hooks.unshift({t:CALL.hk,d:""});CALL.hk="";}}l.tag=gv("s_tag");l.status=closing||e.status;
     const entry={d:iso(today()),st:l.status,tag:l.tag,c:gv("s_c")};
     if(gv("s_hook")){l.hooks=l.hooks||[];l.hooks.unshift({t:gv("s_hook"),d:""});}
     if(closing){if(!gv("s_reason"))return toast("Заполни итог по клиенту");
-      l.closed={status:closing,reason:gv("s_reason"),date:iso(today())};entry.c=(entry.c?entry.c+" · ":"")+"Итог: "+gv("s_reason");
-      l.next=gv("s_next")||addDays(COOLDOWN_DAYS);l.nextTime=gv("s_nt");l.nextWhat="перезвон после закрытия";}
+      l.closed={status:closing,reason:gv("s_reason"),date:iso(today())};if(bank){l.closed.cool=0;l.closed.rem=gv("s_next")||"";}entry.c=(entry.c?entry.c+" · ":"")+"Итог: "+gv("s_reason");
+      l.next=gv("s_next")||(bank?"":addDays(COOLDOWN_DAYS));l.nextTime=bank?"":gv("s_nt");l.nextWhat=bank?"пересмотр отказа банка":"перезвон после закрытия";}
     else{l.next=gv("s_next")||(gv("s_nt")?iso(today()):"");l.nextTime=gv("s_nt");l.nextWhat=e.next;
       if(l.tag==="ХОЛД"&&l.next){l.tag="ХОЛД до "+dm(l.next);entry.tag=l.tag;}}
     l.hist=l.hist||[];l.hist.push(entry);await save(l);
@@ -935,20 +1019,20 @@ function openProfile(){closeOv();
     <div class="f"><label for="pf_p">Должность</label><input id="pf_p" value="${esc(PROFILE.pos)}" placeholder="Не заполнено — в фразах будет [должность]"></div>
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 18</p></div>`;
+    <p class="demo">версия 22</p></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
 }
-const CHEAT_TAGS=[["НД-1/2/3","m","Недозвон, номер попытки","3 попытки за 10 раб. дней, потом «Уточнить контакт»"],["ГД-ФД","o","ГД направил к финансовому","Запиши ФИО и контакт ФД; звони в тот же или следующий день"],["ЛПР","g","Разговор с принимающим решение","ФД, собственник или ГД"],["ПУЛ","r","Отказ: пул банков определён","Перезвон через 14 дней другим заходом"],["НЕТ","r","Отказ: нет потребности","Перезвон через 14 дней"],["УСЛ","r","Отказ: не устроили условия","Ставка, срок, обеспечение"],["КОНК","r","Отказ: выбрали конкурента","Укажи, какой банк"],["СБРОС","r","Бросили трубку","Перезвон через 2 недели другим заходом"],["ХОЛД","m","Подходит, но не сейчас","Причина и дата возврата, до 90 дней"]];
-const CHEAT_MAP=[["Не взяли трубку","Сделать холодный звонок · НД-1/2/3","Повтор через 1–2 дня в другое время"],["ГД направил к финансовому","Сделать холодный звонок · ГД-ФД","Звонок ФД в тот же или следующий день"],["ГД не направил, контакта нет","Уточнить контакт","Цепочка альтернативных контактов, 7 дней"],["Клиент назвал время","Назначен 2-й звонок","Событие в календаре, подготовка"],["Согласились на видео","Назначена видео-встреча","Цель — очная встреча"],["Согласились на встречу","Назначена встреча","Чек-лист подготовки, подтверждение за день"],["«Пул банков определён»","Отказ · ПУЛ","Другой заход через 14 дней"],["«Не сейчас, через квартал»","ХОЛД","Причина и дата возврата"],["Бросили трубку","Отказ · СБРОС","Перезвон через 2 недели"],["Не подходит под критерии","Не целевой","Конкретная причина"]];
+const CHEAT_TAGS=[["НД-1/2/3","m","Недозвон, номер попытки","3 попытки за 10 раб. дней, потом «Уточнить контакт»"],["ГД-ФД","o","ГД направил к финансовому","Запиши ФИО и контакт ФД; звони в тот же или следующий день"],["ЛПР","g","Разговор с принимающим решение","ФД, собственник или ГД"],["ПУЛ","r","Отказ: пул банков определён","Перезвон через 14 дней другим заходом"],["НЕТ","r","Отказ: нет потребности","Перезвон через 14 дней"],["УСЛ","r","Отказ: не устроили условия","Ставка, срок, обеспечение"],["КОНК","r","Отказ: выбрали конкурента","Укажи, какой банк"],["СБРОС","r","Бросили трубку","Перезвон через 14 дней другим заходом"],["ХОЛД","m","Подходит, но не сейчас","Причина и дата возврата, до 90 дней"],["БАНК-*","r","Отказ банка: СБ, риски, юристы, комитет","Клиент в архиве; напоминание по желанию"]];
+const CHEAT_MAP=[["Не взяли трубку","Сделать холодный звонок · НД-1/2/3","Повтор через 1–2 дня в другое время"],["ГД направил к финансовому","Сделать холодный звонок · ГД-ФД","Звонок ФД в тот же или следующий день"],["ГД не направил, контакта нет","Уточнить контакт","Цепочка альтернативных контактов, 7 дней"],["Клиент назвал время","Назначен 2-й звонок","Событие в календаре, подготовка"],["Согласились на видео","Назначена видео-встреча","Цель — очная встреча"],["Согласились на встречу","Назначена встреча","Чек-лист подготовки, подтверждение за день"],["«Пул банков определён»","Отказ · ПУЛ","Другой заход через 14 дней"],["«Не сейчас, через квартал»","ХОЛД","Причина и дата возврата"],["Бросили трубку","Отказ · СБРОС","Перезвон через 14 дней"],["Не подходит под критерии","Не целевой","Конкретная причина"],["Банк отказал клиенту","Отказ банка · БАНК-СБ/РИСК/ЮР/КОМ","Архив; напоминание о пересмотре по желанию"]];
 function openCheat(tab){closeOv();tab=tab||"tags";
   const o=document.createElement("div");o.className="ov full";o.id="ov";
   const body=tab==="tags"?`<div style="margin-top:8px">${CHEAT_TAGS.map(([t,c,a,b])=>`<div class="th"><span class="pill p-${c}">${t}</span><div><b>${a}</b><small>${b}</small></div></div>`).join("")}</div>
      <div class="petrol" style="margin-top:14px;font-size:13px"><b>ГД / ФД</b> — генеральный / финансовый директор · <b>ВЭД</b> — внешнеэкономическая деятельность · <b>КП</b> — коммерческое предложение</div>`:
     `<div class="mp">${CHEAT_MAP.map(([a,b,c])=>`<div><b>${a}</b>${b}<small>${c}</small></div>`).join("")}</div>`;
   o.innerHTML=`<div class="ovin"><div class="head"><button class="ib" type="button" data-ovclose aria-label="Закрыть">${IC.x}</button><div class="seg" style="margin:0 auto"><button type="button" data-cheat="tags" class="${tab==="tags"?"on":""}">Теги</button><button type="button" data-cheat="map" class="${tab==="map"?"on":""}">Результат → статус</button></div><span style="width:42px"></span></div>
-    <h1 class="t">Шпаргалка</h1>${body}<p class="demo">По регламенту клиентской работы (черновик 18.10.2026)</p></div>`;
+    <h1 class="t">Шпаргалка</h1>${body}</div>`;
   document.body.appendChild(o);
 }
 
@@ -975,7 +1059,13 @@ function drawAdd(msg){
       ${msg?`<div class="err">${msg}</div>`:""}
       <div class="bar"><button class="btn" type="submit">Добавить клиента</button></div>
     </form>`;
-  document.getElementById("addph").onclick=()=>{const i=document.createElement("input");i.className="ph";i.inputMode="tel";i.placeholder="Ещё номер";i.setAttribute("aria-label","Телефон");i.style.marginTop="8px";document.getElementById("phs").appendChild(i);i.focus();};
+  document.getElementById("addph").onclick=()=>{
+    const empty=[...document.querySelectorAll("#phs .ph")].find(i=>!i.value.trim());
+    if(empty){empty.focus();return;}   // пустое поле уже есть — новое не добавляем
+    const r=document.createElement("div");r.className="phr";
+    r.innerHTML=`<input class="ph" inputmode="tel" placeholder="Ещё номер" aria-label="Телефон"><button class="xph" type="button" aria-label="Убрать поле">${IC.x}</button>`;
+    r.querySelector(".xph").onclick=()=>r.remove();
+    document.getElementById("phs").appendChild(r);r.querySelector(".ph").focus();};
   document.getElementById("addf").addEventListener("submit",async e=>{e.preventDefault();
     const v=id=>document.getElementById(id).value.trim();
     const inn=v("f_inn").replace(/\D/g,"");
@@ -983,7 +1073,7 @@ function drawAdd(msg){
     if(!/^(\d{10}|\d{12})$/.test(inn))return drawAdd("ИНН — 10 цифр для компании или 12 для ИП.");
     const ex=LEADS[inn];
     if(ex&&!ex.closed)return drawAdd(`Клиент уже в работе: <b>${esc(ex.name)}</b>. Открой его во вкладке «Клиенты».`);
-    if(ex&&ex.closed){const back=addDays(COOLDOWN_DAYS,ex.closed.date);
+    if(ex&&ex.closed){const back=addDays(coolOf(ex),ex.closed.date);
       if(iso(today())<back)return drawAdd(`Клиент <b>${esc(ex.name)}</b> закрыт ${ru(ex.closed.date)} («${esc(ex.closed.reason)}»). Добавить снова можно с ${ru(back)}.`);}
     const l=ex||{inn,created:iso(today()),hist:[]};
     Object.assign(l,{name:v("f_name"),fio:v("f_fio"),pos:v("f_pos"),phones:[...document.querySelectorAll(".ph")].map(i=>i.value.trim()).filter(Boolean),phone:undefined,status:v("f_st")==="Новый"?"Новый клиент":v("f_st"),tag:"",next:v("f_nd")||(v("f_nt")?iso(today()):""),nextWhat:v("f_nw"),nextTime:v("f_nt"),closed:null});
@@ -1095,6 +1185,7 @@ document.addEventListener("click",ev=>{
       let pos=0,fail=0;const w=async()=>{while(pos<ids.length){const k=ids[pos++];try{await delLead(k);}catch{fail++;}}};
       await Promise.all([w(),w(),w(),w(),w()]);SEL=null;toast(fail?"Удалено с ошибками: "+fail:"Удалено: "+(ids.length-fail));draw();});}
   const dy=c("[data-delyes]");if(dy){const inn=dy.dataset.delyes,nm=(LEADS[inn]||{}).name||"";return delLead(inn).then(()=>{closeOv();CUR=null;CALL=null;toast("Удалено: "+nm);draw();});}
+  if(c("[data-banko]"))return openBankNo(CUR);
   if(c("[data-del]"))return confirmDel(CUR);
   if(c("[data-picknew]")){closeOv();ADDMODE="one";IMP=null;return setTab("add");}
   if(c("[data-imp]")){ADDMODE="list";IMP=null;return setTab("add");}
@@ -1119,7 +1210,7 @@ document.addEventListener("click",ev=>{
   if(c("[data-callclose]")){const inn=CALL.inn;CALL=null;CUR=inn;return draw();}
   if(CALL){
     const nx=c("[data-next]");
-    if(nx){const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);return;}
+    if(nx){if(nx.dataset.next==="custom")return askTheme(CALL.hist[CALL.hist.length-1].id);if(nx.dataset.next==="who")return askWho();const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);return;}
     if(c("[data-callback]")){if(CALL.hist.length>1){CALL.hist.pop();drawCall();}else{const inn=CALL.inn;CALL=null;CUR=inn;draw();}}
   }
 });
