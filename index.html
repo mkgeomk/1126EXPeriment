@@ -326,7 +326,7 @@ mark.ph2{background:rgba(240,144,63,.22);color:inherit;border-radius:6px;padding
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 43 · 23.10 19:15</p>
+  <p class="demo" id="ver">версия 44 · 23.10 20:15 · тест календаря</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -814,6 +814,23 @@ async function openRes(){closeOv();await loadKpiAll();
   o.addEventListener("click",ev=>{const a=ev.target.closest("[data-rp],[data-ro],[data-rm],[data-rcopy]");if(!a)return;
     if(a.dataset.rp){RP=a.dataset.rp;RO=0;}else if(a.dataset.ro){RO=Math.min(0,RO+parseInt(a.dataset.ro,10));}else if(a.dataset.rm){RM=a.dataset.rm;}else return copyRep();
     drawRes();});}
+
+// ---------- ВРЕМЕННО: проверка способов добавить событие в календарь ----------
+const CT_BASE=()=>location.origin+location.pathname.replace(/[^/]*$/,"");
+function ctIcs(title,start,min){const p=n=>String(n).padStart(2,"0"),z=d=>d.getUTCFullYear()+p(d.getUTCMonth()+1)+p(d.getUTCDate())+"T"+p(d.getUTCHours())+p(d.getUTCMinutes())+"00Z",e=new Date(start.getTime()+min*60000);
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Callex//RU","CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT","UID:"+Date.now()+"@callex","DTSTAMP:"+z(new Date()),"DTSTART:"+z(start),"DTEND:"+z(e),"SUMMARY:"+title,"DESCRIPTION:Проверка Callex","BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+title,"TRIGGER:-PT15M","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");}
+function ctForm(){const b=(k,t)=>`<button class="gbtn" type="button" data-ct="${k}" style="width:100%;margin-top:8px;text-align:left">${t}</button>`;
+  return `<div class="kps"><div class="sw"><span>Проверка календаря (временно)</span></div>
+    <p class="kn">Событие «Тест Callex» через 20 минут, напоминание за 15 минут. Нажимай по очереди и запоминай номер, который сработал.</p>
+    ${b(1,"1 · Файл .ics внутри Telegram")}${b(2,"2 · Готовый файл .ics в Safari")}${b(3,"3 · Событие через 20 мин — открыть в Safari")}${b(4,"4 · Google Календарь")}${b(5,"5 · Файл .ics — скачать прямо здесь")}</div>`;}
+function ctWire(){const o=document.getElementById("ov");if(!o)return;
+  o.addEventListener("click",ev=>{const a=ev.target.closest("[data-ct]");if(!a)return;const k=a.dataset.ct,st=new Date(Date.now()+20*60000),t="Тест Callex";
+    if(k==="1"){if(TG&&TG.downloadFile&&TG.isVersionAtLeast&&TG.isVersionAtLeast("8.0")){try{TG.downloadFile({url:CT_BASE()+"test.ics",file_name:"callex-test.ics"},ok=>toast(ok?"Telegram: скачивание принято":"Telegram: скачивание отклонено"));}catch(e){toast("Ошибка: "+e.message);}}else toast("Эта версия Telegram не умеет downloadFile");}
+    else if(k==="2")openLink(CT_BASE()+"test.ics");
+    else if(k==="3")openLink(CT_BASE()+"cal.html?t="+encodeURIComponent(t)+"&s="+st.getTime());
+    else if(k==="4"){const p=n=>String(n).padStart(2,"0"),z=d=>d.getUTCFullYear()+p(d.getUTCMonth()+1)+p(d.getUTCDate())+"T"+p(d.getUTCHours())+p(d.getUTCMinutes())+"00Z";openLink("https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(t)+"&dates="+z(st)+"/"+z(new Date(st.getTime()+1800000)));}
+    else if(k==="5"){try{const u=URL.createObjectURL(new Blob([ctIcs(t,st,30)],{type:"text/calendar"})),x=document.createElement("a");x.href=u;x.download="callex-test.ics";document.body.appendChild(x);x.click();x.remove();toast("Попытка скачивания отправлена");}catch(e){toast("Ошибка: "+e.message);}}
+  });}
 
 // ---------- Профиль и подстановки в фразы ----------
 let PROFILE={name:"",bank:"",pos:"",cool:14,done:false};
@@ -1352,8 +1369,9 @@ function openProfile(){closeOv();
     ${kpiForm()}
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 43</p></div>`;
-  document.body.appendChild(o);kpiWireForm();document.getElementById("pf_r").onclick=()=>{closeOv();openRes();};
+    ${ctForm()}
+    <p class="demo">версия 44</p></div>`;
+  document.body.appendChild(o);kpiWireForm();ctWire();document.getElementById("pf_r").onclick=()=>{closeOv();openRes();};
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{kpiRead();PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.cool=Math.max(1,Math.min(365,parseInt(document.getElementById("pf_c").value,10)||14));applyCool();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
 }

@@ -1,0 +1,15 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Callex — в календарь</title>
+<style>body{margin:0;background:#000;color:#fff;font:16px -apple-system,system-ui,sans-serif;padding:24px 16px}h1{font-size:22px;margin:0 0 6px}p{color:#9a9a9a;font-size:14px;line-height:1.45}
+button{display:block;width:100%;margin:12px 0;padding:15px;border:0;border-radius:14px;background:#f28a2e;color:#000;font:600 16px -apple-system,system-ui,sans-serif}button.g{background:#1c1c1c;color:#fff}</style></head><body>
+<h1 id="h">Добавить в календарь</h1><p id="w"></p>
+<button id="a">3а · Добавить (вариант data)</button><button class="g" id="b">3б · Добавить (вариант blob)</button>
+<p>Если ни одна кнопка не сработала — напиши, какой экран появился.</p>
+<script>
+const q=new URLSearchParams(location.search),t=q.get("t")||"Тест Callex",s=new Date(+q.get("s")||Date.now()+1200000),e=new Date(s.getTime()+1800000);
+const p=n=>String(n).padStart(2,"0"),z=d=>d.getUTCFullYear()+p(d.getUTCMonth()+1)+p(d.getUTCDate())+"T"+p(d.getUTCHours())+p(d.getUTCMinutes())+"00Z";
+const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Callex//RU","CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT","UID:"+Date.now()+"@callex","DTSTAMP:"+z(new Date()),"DTSTART:"+z(s),"DTEND:"+z(e),"SUMMARY:"+t.replace(/[\r\n]/g," "),"BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+t.replace(/[\r\n]/g," "),"TRIGGER:-PT15M","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n")+"\r\n";
+document.getElementById("w").textContent=t+" · "+s.toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})+" · напоминание за 15 минут";
+document.getElementById("a").onclick=()=>{location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);};
+document.getElementById("b").onclick=()=>{location.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));};
+window.__ics=ics;
+</script></body></html>
