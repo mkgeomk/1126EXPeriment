@@ -82,7 +82,8 @@ h1.t{font:700 28px/1.12 Inter,sans-serif;letter-spacing:-.02em;margin:16px 0 4px
 .tab.call svg{width:24px;height:24px;stroke-width:2}
 body.deep .tabs{display:none}
 .bdg{position:absolute;top:-3px;left:50%;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font:700 11px/18px Inter,sans-serif;text-align:center;box-shadow:0 0 0 2px #000}
-.due{background:linear-gradient(90deg,rgba(229,72,77,.14),transparent 80%);box-shadow:inset 3px 0 0 var(--bad)}.due .row{padding-left:12px}
+.bdg.o{background:var(--acc);color:#000}
+.due{margin:0 -12px;padding:0 12px;background:linear-gradient(90deg,rgba(229,72,77,.14),transparent 80%);box-shadow:inset 3px 0 0 var(--bad)}
 /* нижняя панель действий */
 .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;align-items:center;justify-content:center;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to top,#000 70%,rgba(0,0,0,0));z-index:4}
 .bar>*{max-width:640px}
@@ -287,7 +288,7 @@ mark.ph2{background:rgba(240,144,63,.22);color:inherit;border-radius:6px;padding
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 38 · 23.10 18:15</p>
+  <p class="demo" id="ver">версия 40 · 23.10 18:40</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -658,10 +659,12 @@ const coolOf=l=>l.closed&&typeof l.closed.cool==="number"?l.closed.cool:COOLDOWN
 const backDate=l=>typeof l.closed.cool==="number"?addDays(l.closed.cool,l.closed.date):(l.closed.rem||addDays(COOLDOWN_DAYS,l.closed.date));
 const revDate=l=>l.closed?(l.closed.rem||(typeof l.closed.cool==="number"?"":addDays(COOLDOWN_DAYS,l.closed.date))):"";
 const dueArch=()=>{const t=iso(today());return Object.values(LEADS).filter(l=>l.closed&&revDate(l)&&revDate(l)<=t).sort((a,b)=>revDate(a).localeCompare(revDate(b)));};
-function updBadge(){const b=document.querySelector('.tab[data-tab="archive"]');if(!b)return;const n=dueArch().length;let s=b.querySelector(".bdg");
+function setBadge(tab,n,cls){const b=document.querySelector('.tab[data-tab="'+tab+'"]');if(!b)return;let s=b.querySelector(".bdg");
   if(!n){if(s)s.remove();return;}
   if(!s){s=document.createElement("span");s.className="bdg";b.appendChild(s);}
-  s.textContent=n>9?"9+":String(n);}
+  s.className="bdg"+(cls?" "+cls:"");s.textContent=n>9?"9+":String(n);}
+// «Сегодня» — звонки на сегодня и просроченные (оранжевый); «Архив» — клиенты, которых пора вернуть (красный)
+function updBadge(){const t=iso(today());setBadge("today",active().filter(l=>!isNew(l)&&l.next&&l.next<=t).length,"o");setBadge("archive",dueArch().length,"");}
 function whenTxt(l){const t=iso(today());if(!l.next)return "—";if(l.next===t)return l.nextTime||"сегодня";if(l.next<t){const d=daysBetween(l.next,t);return d===1?"вчера":dm(l.next);}return dm(l.next)+(l.nextTime?" "+l.nextTime:"");}
 function subLine(l){return [fioShort(l.fio),tagTok(l.tag),l.reg].filter(Boolean).join(" · ");}
 function inTxt(tm){const [h,m]=tm.split(":").map(Number),d=new Date();const diff=h*60+m-(d.getHours()*60+d.getMinutes());if(diff<=0)return "сейчас";if(diff<60)return "через "+diff+" мин";return "через "+Math.floor(diff/60)+" ч"+(diff%60?" "+diff%60+" мин":"");}
@@ -779,12 +782,13 @@ function fillToday(){
       ${over.length?`<div class="hs" style="margin:6px 0 0">Просрочено: ${over.length} <button class="lnk" type="button" data-filt="over">→ открыть</button></div>`:`<div class="hs" style="margin:6px 0 0">Добавь клиента кнопкой «Добавить».</div>`}</div>`;
   const cnt={today:todayL.length+nod.length+rv.length,over:over.length};
   const chip=(k,t,n,red)=>`<button type="button" data-filt="${k}" class="${FILT===k?"on":""}">${t}${n!=null?` <b${red&&n>0&&FILT!==k?' class="r"':""}>${n}</b>`:""}</button>`;
+  const rowW=l=>{const h=rowH(l);return l.next&&l.next<iso(today())?`<div class="due">${h}</div>`:h;};
   const chips=`<div class="chips">${chip("today","Сегодня",cnt.today)}${chip("over","Просрочено",cnt.over,true)}${chip("all","Все звонки",act.length)}</div>`;
   let list;
-  if(FILT==="today")list=todayL.map(l=>rowH(l)).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"}))).concat(rv.map(l=>{const tt=iso(today()),late=revDate(l)<tt,kp=l.closed.status.startsWith("Передан");return `<div class="due">${rowH(l,{pill:[kp?"Сделка":"Пересмотр","r"],rightB:late?"просрочено":"сегодня",rightS:dm(revDate(l)),bad:true,sub:kp?"Передан в КП · проверить статус":(l.closed.status==="Отказ банка"?"Отказ банка · "+(bankNames(l)?bankNames(l)+" · ":""):(tagTok(l.tag)||"Отказ")+" · ")+(l.closed.reason||"")})}</div>`;}));
-  else if(FILT==="over")list=over.map(l=>rowH(l));
-  else if(FILT==="3d")list=soon.map(l=>rowH(l));
-  else list=act.slice().sort((a,b)=>(a.next||"9").localeCompare(b.next||"9")||byTime(a,b)).map(l=>rowH(l));
+  if(FILT==="today")list=todayL.map(rowW).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"}))).concat(rv.map(l=>{const tt=iso(today()),late=revDate(l)<tt,kp=l.closed.status.startsWith("Передан");return `<div class="due">${rowH(l,{pill:[kp?"Сделка":"Пересмотр","r"],rightB:late?"просрочено":"сегодня",rightS:dm(revDate(l)),bad:true,sub:kp?"Передан в КП · проверить статус":(l.closed.status==="Отказ банка"?"Отказ банка · "+(bankNames(l)?bankNames(l)+" · ":""):(tagTok(l.tag)||"Отказ")+" · ")+(l.closed.reason||"")})}</div>`;}));
+  else if(FILT==="over")list=over.map(rowW);
+  else if(FILT==="3d")list=soon.map(rowW);
+  else list=act.slice().sort((a,b)=>(a.next||"9").localeCompare(b.next||"9")||byTime(a,b)).map(rowW);
   el.innerHTML=hero+chips+`<div class="lst">${list.join("")||`<p class="mut pad">Здесь пока пусто.</p>`}</div>`;
 }
 function newHtml(nw){
@@ -1201,7 +1205,7 @@ function openProfile(){closeOv();
     <div class="f"><label for="pf_c">Пауза после отказа клиента, дней</label><input id="pf_c" type="number" inputmode="numeric" min="1" max="365" value="${esc(PROFILE.cool||14)}"><small class="mut" style="display:block;margin-top:6px">Через сколько дней можно возвращаться к клиенту, который отказал. По умолчанию 14.</small></div>
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 38</p></div>`;
+    <p class="demo">версия 40</p></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.cool=Math.max(1,Math.min(365,parseInt(document.getElementById("pf_c").value,10)||14));applyCool();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
@@ -1298,7 +1302,7 @@ function drawImport(){
   document.getElementById("impcheck").onclick=async()=>{const t=document.getElementById("imp").value;if(!t.trim())return;const r=await runImport(t,true);IMP={src:t,res:r};drawImport();};
   document.getElementById("impgo").onclick=async()=>{if(!can||IMP.busy)return;IMP.busy=true;const bt=document.getElementById("impgo");bt.classList.add("dis");
     const r=await runImport(IMP.src,false,(d,n)=>{bt.textContent="Сохраняю… "+d+" из "+n;});IMP=null;
-    toast(r.failed?("Сохранено с ошибками: не записалось "+r.failed+" из "+(r.added+r.upd)):"Добавлено: "+r.added+(r.upd?", обновлено: "+r.upd:""));ADDMODE="one";TAB="today";SEG="new";CUR=null;draw();};
+    toast(r.failed?("Сохранено с ошибками: не записалось "+r.failed+" из "+(r.added+r.upd)):"Добавлено: "+r.added+(r.upd?", обновлено: "+r.upd:""));ADDMODE="one";TAB="leads";FILT_CL="Новые";SEG="calls";CUR=null;draw();};
 }
 
 // ---------- Приветствие ----------
