@@ -25,6 +25,44 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke
 .seg button{padding:7px 14px;border-radius:999px;color:#8a8a8a;text-align:center}
 .seg button.on{background:#2b2b2b;color:#fff}
 .seg b{color:var(--acc)}
+.kpi{background:#141414;border-radius:18px;padding:11px 14px;margin:10px 0 0;cursor:pointer}
+.kpi .kh{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font:600 11px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.kpi .kh b{display:flex;gap:10px;align-items:center;font-weight:500;font-size:14px;color:#9a9a9a}
+.kpi .kh button{background:none;border:0;color:#9a9a9a;padding:0 2px;font-size:15px;cursor:pointer}
+.kpi .kl{display:flex;gap:14px;flex-wrap:wrap;font:600 14px Inter,sans-serif}
+.kpi .kl small{color:var(--mut);font-weight:500;font-size:11px;margin-right:4px}
+.kpi .ok{color:var(--ok)}.kpi .bd{color:var(--bad)}
+.kpi .kb{margin:10px 0 0}.kpi .kb .kt{display:flex;justify-content:space-between;font:500 13px Inter,sans-serif;margin-bottom:5px}
+.kpi .kb .kt i{font-style:normal;color:var(--mut)}.kpi .kb .kt i.ok{color:var(--ok)}
+.kpi .kbar{height:5px;background:#262626;border-radius:3px;overflow:hidden;position:static}.kpi .kbar div{height:100%;background:var(--acc);border-radius:3px}.kpi .kbar.ok div{background:var(--ok)}
+.kpi .ksg{display:flex;background:#1c1c1c;border-radius:10px;padding:2px;margin-top:12px}
+.kpi .ksg button{flex:1;border:0;background:none;color:var(--mut);font:500 12px Inter,sans-serif;padding:6px;border-radius:8px;cursor:pointer}
+.kpi .ksg button.on{background:#2a2a2a;color:#fff}
+.kps{margin:18px 0 0;padding:14px 0 0;border-top:1px solid #1d1d1d}
+.kps .kr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;font:500 14px Inter,sans-serif}
+.kps .kr label{display:flex;align-items:center;gap:10px;flex:1}
+.kps .kr input[type=number]{width:72px;height:38px;background:#1c1c1c;border:0;border-radius:10px;color:#fff;text-align:center;font-size:15px;outline:0}
+.kps .kr input[type=checkbox]{width:20px;height:20px;accent-color:#f28a2e}
+.kps .sw{display:flex;align-items:center;justify-content:space-between;font:600 15px Inter,sans-serif}
+.kps .sw input{-webkit-appearance:none;appearance:none;width:46px;height:27px;border-radius:14px;background:#333;position:relative;outline:0;cursor:pointer;margin:0}
+.kps .sw input:checked{background:var(--ok)}
+.kps .sw input::after{content:"";position:absolute;left:3px;top:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .15s}
+.kps .sw input:checked::after{left:22px}
+.kps .kn{color:var(--mut);font:400 12px Inter,sans-serif;margin:6px 0 0}
+.kps .kreset{margin-top:8px;width:100%}
+.rnav{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px}.rnav b{font:600 15px Inter,sans-serif}.rnav .ib:disabled{opacity:.25}
+.rs{background:#141414;border-radius:16px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.rs b{font:600 15px Inter,sans-serif}.rs small{display:block;color:var(--mut);font:400 12px Inter,sans-serif;margin-top:2px}
+.rs .rv{text-align:right}.rs .rv span{font:700 24px Inter,sans-serif}.rs .rv small i{font-style:normal;font-weight:600}.rs .rv small i.up{color:var(--ok)}.rs .rv small i.dn{color:var(--bad)}
+.rc{color:var(--acc);font:600 12.5px Inter,sans-serif;padding:6px 14px}
+.rlb{margin:16px 4px 8px;color:var(--mut);font:600 11px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.rch{display:flex;gap:6px;margin:0 0 8px}.rch button{border:0;background:#1c1c1c;color:var(--mut);font:500 12px Inter,sans-serif;padding:6px 12px;border-radius:999px;cursor:pointer}.rch button.on{background:#fff;color:#000}
+.rbx{display:flex;align-items:flex-end;gap:3px;height:110px;background:#141414;border-radius:16px;padding:10px 10px 6px}
+.rbx div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}
+.rbx i{display:block;width:100%;background:var(--acc);border-radius:3px 3px 0 0;min-height:2px}.rbx i.z{background:#262626}
+.rbx em{font:normal 500 9.5px Inter,sans-serif;color:var(--mut);margin-top:3px;height:12px;white-space:nowrap}.rbx u{font:500 9.5px Inter,sans-serif;text-decoration:none;color:#bbb;height:12px}
+.rnote{color:var(--mut);font:400 12px Inter,sans-serif;margin:12px 4px 0;line-height:1.45}
+#rtx{width:100%;height:150px;background:#141414;color:#fff;border:0;border-radius:12px;padding:10px;font-size:13px;margin-top:10px}
 .search{display:flex;align-items:center;gap:8px;height:44px;border-radius:999px;background:#141414;padding:0 14px;color:#777;margin:10px 0 0}
 .search input{flex:1;background:none;border:0;outline:0;min-width:0;font-size:15px}
 .search input::placeholder{color:#777}
@@ -288,7 +326,7 @@ mark.ph2{background:rgba(240,144,63,.22);color:inherit;border-radius:6px;padding
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 40 · 23.10 18:40</p>
+  <p class="demo" id="ver">версия 42 · 23.10 19:30</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -615,6 +653,7 @@ async function runImport(src,dry,prog){
 
 // ===================== Новый интерфейс (версия 17) =====================
 const IC={
+ chart:'<svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M21 20H3"/></svg>',
  today:'<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
  people:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 5.2a3.3 3.3 0 0 1 0 6.6M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></svg>',
  archive:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4"/></svg>',
@@ -670,6 +709,111 @@ function subLine(l){return [fioShort(l.fio),tagTok(l.tag),l.reg].filter(Boolean)
 function inTxt(tm){const [h,m]=tm.split(":").map(Number),d=new Date();const diff=h*60+m-(d.getHours()*60+d.getMinutes());if(diff<=0)return "сейчас";if(diff<60)return "через "+diff+" мин";return "через "+Math.floor(diff/60)+" ч"+(diff%60?" "+diff%60+" мин":"");}
 function setTab(t){TAB=t;CUR=null;CALL=null;SEL=null;draw();}
 function startCall(inn){const l=LEADS[inn];if(!l)return;CALL={inn,t0:Date.now(),hist:[{id:"start",theme:l.theme||null}]};CUR=null;draw();}
+
+// ---------- KPI: счётчики и плашка ----------
+const KDEF={on:true,n:40,l:8,a:3,m:4,d:4,show:{n:1,l:1,a:1,m:1,z:1}};
+const KREG={n:40,l:8,a:3,m:4,d:4};   // нормы из регламента (часть 2, «Нормативы активности»; в регламенте помечены «утвердить»)
+const AGR_ST=["Назначена встреча","Назначена видео-встреча","Назначен 2-й звонок"];
+let KPI={},KOPEN=false,KVIEW="d";
+const kcfg=()=>{const p=PROFILE.kpi||{};return Object.assign({},KDEF,p,{show:Object.assign({},KDEF.show,p.show||{})});};
+const kmKey=d=>"kpi_"+d.slice(0,7);
+async function loadKpi(){const ks=[...new Set([iso(today()),addDays(-7)].map(kmKey))],v=await store.get(ks);KPI={};
+  for(const k of ks){try{const o=JSON.parse((v&&v[k])||"null")||{};for(const d in o)KPI[k.slice(4)+"-"+d]=o[d];}catch{}}}
+async function kpiAdd(a){const d=iso(today()),cur=KPI[d]||[0,0,0,0,0,0,0];a.forEach((x,i)=>cur[i]=(cur[i]||0)+x);KPI[d]=cur;
+  const pre=d.slice(0,7),o={};for(const x in KPI)if(x.startsWith(pre))o[x.slice(8)]=KPI[x];await store.set(kmKey(d),JSON.stringify(o));}
+// [наборы, разговоры с ЛПР, договорённости, очные встречи]
+function kpiOf(st,tag,closing,kp,bank){const t=(tag||"").split(", ");
+  const lpr=t.includes("ЛПР")||kp||(closing&&["ПУЛ","НЕТ","УСЛ","КОНК"].some(x=>t.includes(x)));
+  return [1,lpr?1:0,AGR_ST.includes(st)?1:0,st==="Назначена встреча"?1:0,kp?1:0,(closing&&!kp&&!bank)?1:0,bank?1:0];}
+const kSum=(f,t)=>{const s=[0,0,0,0,0,0,0];for(const d in KPI)if(d>=f&&d<=t)KPI[d].forEach((x,i)=>s[i]+=x);return s;};
+const weekStart=()=>addDays(-((today().getDay()+6)%7));
+function kpiInner(){const c=kcfg();if(!c.on)return "";
+  const t=iso(today()),dy=KPI[t]||[0,0,0,0],nod=active().filter(l=>!isNew(l)&&!l.next).length;
+  const Ld=[["n","Наборы",0,c.n],["l","ЛПР",1,c.l],["a","Догов.",2,c.a]].filter(r=>c.show[r[0]]&&r[3]>0);
+  const zOn=c.show.z,mOn=c.show.m&&c.m>0;
+  if(!Ld.length&&!zOn&&!mOn)return "";
+  if(!KOPEN){
+    const sp=Ld.map(r=>`<span class="${dy[r[2]]>=r[3]?"ok":""}"><small>${r[1]}</small>${dy[r[2]]}/${r[3]}</span>`).join("")+(zOn&&nod?`<span class="bd"><small>Без даты</small>${nod}</span>`:"");
+    return `<div class="kh" data-kpi="tog"><span>KPI сегодня</span><b>⌄</b></div><div class="kl" data-kpi="tog">${sp||'<span><small>Нажми, чтобы открыть</small></span>'}</div>`;}
+  const w=KVIEW==="w",s=w?kSum(weekStart(),t):dy,k=w?c.d:1;
+  const R=[["n","Наборы",0,c.n*k],["l","Разговоры с ЛПР",1,c.l*k],["a","Договорённости",2,c.a*k]].filter(r=>c.show[r[0]]&&r[3]>0).map(r=>[r[1],s[r[2]],r[3]]);
+  if(w&&mOn)R.push(["Встречи (назначены)",s[3],c.m]);
+  const bars=R.map(r=>{const ok=r[1]>=r[2];return `<div class="kb"><div class="kt"><span>${r[0]}</span><i class="${ok?"ok":""}">${r[1]}/${r[2]}</i></div><div class="kbar${ok?" ok":""}"><div style="width:${Math.min(100,Math.round(r[1]/r[2]*100))}%"></div></div></div>`;}).join("");
+  const z=zOn?`<div class="kb"><div class="kt"><span>Карточек без даты</span><i class="${nod?"bd":"ok"}">${nod} (норма 0)</i></div></div>`:"";
+  return `<div class="kh"><span>KPI · ${w?"неделя":"сегодня"}</span><b><button type="button" data-kpi="set" aria-label="Настроить KPI">⚙</button><button type="button" data-kpi="tog" aria-label="Свернуть">⌃</button></b></div>${bars}${z}
+    <div class="ksg"><button type="button" data-kpi="d" class="${w?"":"on"}">День</button><button type="button" data-kpi="w" class="${w?"on":""}">Неделя</button></div><button class="gbtn" type="button" data-kpi="res" style="margin-top:10px;width:100%">Результаты →</button>`;}
+function kpiWire(){const el=document.getElementById("kpi");if(!el)return;
+  el.onclick=ev=>{const a=ev.target.closest("[data-kpi]");if(!a)return;const v=a.dataset.kpi;
+    if(v==="set")return openProfile();if(v==="res")return openRes();if(v==="d"||v==="w")KVIEW=v;else KOPEN=!KOPEN;
+    const h=kpiInner();if(h)el.innerHTML=h;};}
+function kpiForm(){const c=kcfg(),row=(k,lab)=>`<div class="kr"><label><input type="checkbox" id="ks_${k}" ${c.show[k]?"checked":""}>${lab}</label><input type="number" inputmode="numeric" min="0" max="999" id="kv_${k}" value="${c[k]}"></div>`;
+  return `<div class="kps"><div class="sw"><span>KPI на экране «Сегодня»</span><input type="checkbox" id="ko" ${c.on?"checked":""} aria-label="Включить KPI"></div>
+    <div id="kf" ${c.on?"":"hidden"}>
+      ${row("n","Наборы в день")}${row("l","Разговоры с ЛПР в день")}${row("a","Договорённости в день")}${row("m","Встречи в неделю")}
+      <div class="kr"><label><input type="checkbox" id="ks_z" ${c.show.z?"checked":""}>Карточки без даты (норма 0)</label></div>
+      <div class="kr"><label>Дней звонков в неделю</label><input type="number" inputmode="numeric" min="1" max="7" id="kv_d" value="${c.d}"></div>
+      <button class="gbtn kreset" type="button" id="kreset">Сбросить к регламенту</button>
+      <p class="kn">Нормы по умолчанию взяты из регламента. Галочка слева — показывать показатель на экране.</p></div>
+    <p class="kn">Отметки о звонках записываются всегда, даже при выключенном KPI.</p></div>`;}
+function kpiRead(){const g=id=>document.getElementById(id),n=(id,d,mx)=>{const v=parseInt((g(id)||{}).value,10);return isNaN(v)?d:Math.max(0,Math.min(mx,v));};
+  PROFILE.kpi={on:!!g("ko").checked,n:n("kv_n",40,999),l:n("kv_l",8,999),a:n("kv_a",3,999),m:n("kv_m",4,999),d:Math.max(1,n("kv_d",4,7)),
+    show:{n:+g("ks_n").checked,l:+g("ks_l").checked,a:+g("ks_a").checked,m:+g("ks_m").checked,z:+g("ks_z").checked}};}
+function kpiWireForm(){const g=id=>document.getElementById(id);
+  g("ko").onchange=()=>{g("kf").hidden=!g("ko").checked;};
+  g("kreset").onclick=()=>{for(const k of ["n","l","a","m","d"])g("kv_"+k).value=KREG[k];for(const k of ["n","l","a","m","z"])g("ks_"+k).checked=true;toast("Нормы по регламенту");};}
+
+// ---------- Результаты ----------
+let RP="w",RO=0,RM="n";
+const MON=["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"],MN=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const pad2=n=>String(n).padStart(2,"0"),pc=(a,b)=>b>0?Math.round(a/b*100)+"%":"—";
+async function loadKpiAll(){const ks=[],t=today();for(let i=0;i<13;i++)ks.push(kmKey(iso(new Date(t.getFullYear(),t.getMonth()-i,1))));
+  const v=await store.get(ks);for(const k of ks){try{const o=JSON.parse((v&&v[k])||"null")||{};for(const d in o)KPI[k.slice(4)+"-"+d]=o[d];}catch{}}}
+function rRange(p,o){const t=today();
+  if(p==="d"){const d=addDays(o);return [d,d];}
+  if(p==="w"){const f=addDays(-((t.getDay()+6)%7)+7*o);return [f,addDays(6,f)];}
+  if(p==="m"){return [iso(new Date(t.getFullYear(),t.getMonth()+o,1)),iso(new Date(t.getFullYear(),t.getMonth()+o+1,0))];}
+  const y=t.getFullYear()+o;return [y+"-01-01",y+"-12-31"];}
+const dmS=d=>(+d.slice(8))+" "+MON[+d.slice(5,7)-1];
+function rLabel(p,o){const [f,t]=rRange(p,o);
+  if(p==="d")return o===0?"Сегодня":o===-1?"Вчера":dmS(f);
+  if(p==="w")return dmS(f)+" – "+dmS(t);
+  if(p==="m")return MN[+f.slice(5,7)-1]+" "+f.slice(0,4);return f.slice(0,4)+" год";}
+function rBars(){const [f]=rRange(RP,RO),ix={n:0,l:1,a:2}[RM],g=d=>((KPI[d]||[])[ix])||0;let it=[];
+  if(RP==="w")for(let i=0;i<7;i++)it.push([g(addDays(i,f)),["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][i]]);
+  else if(RP==="m"){const n=new Date(+f.slice(0,4),+f.slice(5,7),0).getDate();for(let i=1;i<=n;i++)it.push([g(f.slice(0,8)+pad2(i)),(i===1||i%5===0)?String(i):""]);}
+  else if(RP==="y"){for(let m=1;m<=12;m++){let v=0;const pre=f.slice(0,4)+"-"+pad2(m);for(const d in KPI)if(d.startsWith(pre))v+=((KPI[d]||[])[ix])||0;it.push([v,"ЯФМАМИИАСОНД"[m-1]]);}}
+  else return "";
+  const mx=Math.max(1,...it.map(x=>x[0])),lab=RP!=="m";
+  return `<div class="rbx">${it.map(x=>`<div>${lab&&x[0]?`<u>${x[0]}</u>`:`<u></u>`}<i class="${x[0]?"":"z"}" style="height:${Math.round(x[0]/mx*78)}%"></i><em>${x[1]}</em></div>`).join("")}</div>`;}
+function repText(){const [f,t]=rRange(RP,RO),s=kSum(f,t),nm=[PROFILE.name,PROFILE.bank].filter(Boolean).join(", "),L=["Результаты · "+rLabel(RP,RO)];
+  if(nm)L.push(nm);
+  L.push("","Наборы: "+s[0],"Разговоры с ЛПР: "+s[1]+" ("+pc(s[1],s[0])+" от наборов)","Договорённости: "+s[2]+" ("+pc(s[2],s[1])+" от разговоров с ЛПР)","Очные встречи назначено: "+s[3]+" ("+pc(s[3],s[2])+" от договорённостей)","КП: "+s[4],"Отказы клиента: "+s[5]+", отказы банка: "+s[6]);
+  return L.join("\n");}
+async function copyRep(){const tx=repText();let ok=false;try{await navigator.clipboard.writeText(tx);ok=true;}catch{}
+  if(!ok){const ta=document.getElementById("rtx");if(ta){ta.hidden=false;ta.value=tx;ta.focus();ta.select();try{ok=document.execCommand("copy");}catch{}}}
+  toast(ok?"Отчёт скопирован":"Выдели текст ниже и скопируй");}
+function drawRes(){const o=document.getElementById("ov");if(!o)return;
+  const [f,t]=rRange(RP,RO);let [pf,pt]=rRange(RP,RO-1);
+  if(RO===0&&RP!=="d"){const n=today();if(RP==="w")pt=addDays((n.getDay()+6)%7,pf);else if(RP==="m")pt=pt.slice(0,8)+pad2(Math.min(n.getDate(),+pt.slice(8)));else pt=pf.slice(0,4)+"-"+pad2(n.getMonth()+1)+"-"+pad2(n.getDate());}
+  const s=kSum(f,t),q=kSum(pf,pt);
+  const st=(name,i)=>{const v=s[i],p=q[i],d=v-p;return `<div class="rs"><div><b>${name}</b></div><div class="rv"><span>${v}</span><small>было ${p}${d?` <i class="${d>0?"up":"dn"}">${d>0?"+":"−"}${Math.abs(d)}</i>`:""}</small></div></div>`;};
+  const cv=(a,b,txt)=>`<div class="rc">↓ ${pc(s[a],s[b])} ${txt}</div>`;
+  const empty=!s.some(x=>x);
+  o.innerHTML=`<div class="ovin"><div class="head"><button class="ib" type="button" data-ovclose aria-label="Закрыть">${IC.x}</button><div class="seg" style="margin:0 auto">${[["d","День"],["w","Неделя"],["m","Месяц"],["y","Год"]].map(x=>`<button type="button" data-rp="${x[0]}" class="${RP===x[0]?"on":""}">${x[1]}</button>`).join("")}</div><span style="width:42px"></span></div>
+    <h1 class="t">Результаты</h1>
+    <div class="rnav"><button class="ib" type="button" data-ro="-1" aria-label="Раньше">‹</button><b>${rLabel(RP,RO)}</b><button class="ib" type="button" data-ro="1" aria-label="Позже" ${RO>=0?"disabled":""}>›</button></div>
+    ${empty?`<p class="rnote" style="margin:6px 4px 14px">За этот период отметок нет. Счётчики ведутся с версии 41, раньше данных нет.</p>`:""}
+    ${st("Наборы",0)}${cv(1,0,"доходят до ЛПР")}${st("Разговоры с ЛПР",1)}${cv(2,1,"в договорённость")}${st("Договорённости",2)}${cv(3,2,"в очную встречу")}${st("Очные встречи (назначены)",3)}${cv(4,3,"в КП")}${st("КП",4)}
+    <div class="rlb">Не получилось</div>${st("Отказы клиента",5)}<div style="height:6px"></div>${st("Отказы банка",6)}
+    ${RP!=="d"?`<div class="rlb">По ${RP==="y"?"месяцам":"дням"}</div><div class="rch">${[["n","Наборы"],["l","ЛПР"],["a","Договорённости"]].map(x=>`<button type="button" data-rm="${x[0]}" class="${RM===x[0]?"on":""}">${x[1]}</button>`).join("")}</div>${rBars()}`:""}
+    <button class="btn" type="button" data-rcopy style="margin-top:18px">Скопировать отчёт</button>
+    <textarea id="rtx" readonly hidden></textarea>
+    <p class="rnote">${RO===0&&RP!=="d"?"Текущий период сравнивается с тем же сроком прошлого («было»). ":""}Конверсия — отношение цифр за выбранный период, а не путь конкретного клиента: договорённость из пятницы может стать встречей на следующей неделе. На малых числах проценты скачут.</p></div>`;}
+async function openRes(){closeOv();await loadKpiAll();
+  const o=document.createElement("div");o.className="ov full";o.id="ov";document.body.appendChild(o);drawRes();
+  o.addEventListener("click",ev=>{const a=ev.target.closest("[data-rp],[data-ro],[data-rm],[data-rcopy]");if(!a)return;
+    if(a.dataset.rp){RP=a.dataset.rp;RO=0;}else if(a.dataset.ro){RO=Math.min(0,RO+parseInt(a.dataset.ro,10));}else if(a.dataset.rm){RM=a.dataset.rm;}else return copyRep();
+    drawRes();});}
 
 // ---------- Профиль и подстановки в фразы ----------
 let PROFILE={name:"",bank:"",pos:"",cool:14,done:false};
@@ -748,9 +892,9 @@ let SEG="calls",FILT="today",QTXT="",NEW_ALL=false;
 function drawToday(){
   const nw=active().filter(isNew);
   const mid=`<div class="seg" style="margin:0 auto"><button type="button" data-seg="calls" class="${SEG==="calls"?"on":""}">Звонки</button><button type="button" data-seg="new" class="${SEG==="new"?"on":""}">Новые${nw.length?` <b>${nw.length}</b>`:""}</button></div>`;
-  main.innerHTML=headH(mid,`<button class="ib" type="button" data-imp aria-label="Загрузить список">${IC.upload}</button>`)+
-   `<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН, ФИО или телефон" value="${esc(QTXT)}" aria-label="Поиск"></div><div id="tl"></div>`;
-  fillToday();
+  main.innerHTML=headH(mid,`<button class="ib" type="button" data-res aria-label="Результаты">${IC.chart}</button><button class="ib" type="button" data-imp aria-label="Загрузить список">${IC.upload}</button>`)+
+   `<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН, ФИО или телефон" value="${esc(QTXT)}" aria-label="Поиск"></div>${SEG==="calls"&&kpiInner()?`<div class="kpi" id="kpi">${kpiInner()}</div>`:""}<div id="tl"></div>`;
+  kpiWire();{const rb=main.querySelector("[data-res]");if(rb)rb.onclick=openRes;}fillToday();
   document.getElementById("q").addEventListener("input",e=>{QTXT=e.target.value;fillToday();});
 }
 function todayData(){const t=iso(today()),act=active().filter(l=>!isNew(l));
@@ -1190,6 +1334,7 @@ function drawEnd(l,cur,n){
     else{l.next=gv("s_next")||(gv("s_nt")?iso(today()):"");l.nextTime=gv("s_nt");l.nextWhat=e.next;
       if(l.tag==="ХОЛД"&&l.next){l.tag="ХОЛД до "+dm(l.next);entry.tag=l.tag;}}
     l.hist=l.hist||[];l.hist.push(entry);await save(l);
+    try{await kpiAdd(kpiOf(closing||keep?"":e.status,gv("s_tag"),!!closing,kp,bank));}catch{}
     toast(closing?"Клиент закрыт и перенесён в архив":"Сохранено");CALL=null;CUR=l.inn;draw();};
   window.scrollTo(0,0);
 }
@@ -1203,12 +1348,14 @@ function openProfile(){closeOv();
     <div class="f"><label for="pf_b">Банк</label><input id="pf_b" value="${esc(PROFILE.bank)}" placeholder="Не заполнено — в фразах будет [банк]"></div>
     <div class="f"><label for="pf_p">Должность</label><input id="pf_p" value="${esc(PROFILE.pos)}" placeholder="Не заполнено — в фразах будет [должность]"></div>
     <div class="f"><label for="pf_c">Пауза после отказа клиента, дней</label><input id="pf_c" type="number" inputmode="numeric" min="1" max="365" value="${esc(PROFILE.cool||14)}"><small class="mut" style="display:block;margin-top:6px">Через сколько дней можно возвращаться к клиенту, который отказал. По умолчанию 14.</small></div>
+    <button class="gbtn" type="button" id="pf_r" style="margin-top:16px;width:100%">Результаты и конверсия</button>
+    ${kpiForm()}
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 40</p></div>`;
-  document.body.appendChild(o);
+    <p class="demo">версия 42</p></div>`;
+  document.body.appendChild(o);kpiWireForm();document.getElementById("pf_r").onclick=()=>{closeOv();openRes();};
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
-  document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.cool=Math.max(1,Math.min(365,parseInt(document.getElementById("pf_c").value,10)||14));applyCool();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
+  document.getElementById("pf_s").onclick=async()=>{kpiRead();PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.cool=Math.max(1,Math.min(365,parseInt(document.getElementById("pf_c").value,10)||14));applyCool();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
 }
 const CHEAT_TAGS=[["НД-1/2/3","m","Недозвон, номер попытки","3 попытки за 10 раб. дней, потом «Уточнить контакт»"],["ГД-ФД","o","ГД направил к финансовому","Запиши ФИО и контакт ФД; звони в тот же или следующий день"],["ЛПР","g","Разговор с принимающим решение","ФД, собственник или ГД"],["ПУЛ","r","Отказ: пул банков определён","Перезвон через 14 дней другим заходом"],["НЕТ","r","Отказ: нет потребности","Перезвон через 14 дней"],["УСЛ","r","Отказ: не устроили условия","Ставка, срок, обеспечение"],["КОНК","r","Отказ: выбрали конкурента","Укажи, какой банк"],["СБРОС","r","Бросили трубку","Перезвон через 14 дней другим заходом"],["ХОЛД","m","Подходит, но не сейчас","Причина и дата возврата, до 90 дней"],["БАНК-*","r","Отказ банка: СБ, риски, юристы, комитет","Клиент в архиве; напоминание по желанию"]];
 const CHEAT_MAP=[["Не взяли трубку","Сделать холодный звонок · НД-1/2/3","Повтор через 1–2 дня в другое время"],["ГД направил к финансовому","Сделать холодный звонок · ГД-ФД","Звонок ФД в тот же или следующий день"],["ГД не направил, контакта нет","Уточнить контакт","Цепочка альтернативных контактов, 7 дней"],["Клиент назвал время","Назначен 2-й звонок","Событие в календаре, подготовка"],["Согласились на видео","Назначена видео-встреча","Цель — очная встреча"],["Согласились на встречу","Назначена встреча","Чек-лист подготовки, подтверждение за день"],["«Пул банков определён»","Отказ · ПУЛ","Другой заход через 14 дней"],["«Не сейчас, через квартал»","ХОЛД","Причина и дата возврата"],["Бросили трубку","Отказ · СБРОС","Перезвон через 14 дней"],["Не подходит под критерии","Не целевой","Конкретная причина"],["Банк отказал клиенту","Отказ банка · БАНК-СБ/РИСК/ЮР/КОМ","Архив; напоминание о пересмотре по желанию"]];
@@ -1410,7 +1557,7 @@ document.addEventListener("click",ev=>{
 (async()=>{
   if(TG){try{TG.setHeaderColor("#000000");TG.setBackgroundColor("#000000");}catch{}TG.ready();TG.expand();const u=TG.initDataUnsafe&&TG.initDataUnsafe.user;if(u)TGNAME=u.first_name||"";}
   else document.getElementById("demo").hidden=false;
-  await loadAll();await loadProfile();applyCool();draw();
+  await loadAll();await loadProfile();applyCool();await loadKpi();draw();
 })();
 
 (function(){const t=document.getElementById("tabsin");
