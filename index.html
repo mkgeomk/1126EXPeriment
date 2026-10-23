@@ -274,7 +274,7 @@ body.deep .demo{display:none}
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 24 · 23.10 16:05</p>
+  <p class="demo" id="ver">версия 25 · 23.10 15:55</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -845,7 +845,7 @@ const mkCustom=(text,hook)=>({name:text,hint:"",gd:"вопросы по теме
   topic:"теме «"+text+"»",why:"«Понял вас. Подскажите, что для вас сейчас важнее всего по этому вопросу — чтобы я понимал, с чем к вам вернуться?»"});
 const FD_NODES=["gdfd","gotContact"];
 const isGD=r=>/^(гд|ген)/i.test(r||""),isFD=r=>/^(фд|фин)/i.test(r||"");
-const ctsOf=l=>[{k:0,role:l.pos||"ГД",fio:l.fio||"",phones:phonesOf(l)}].concat((l.cs||[]).map((c,i)=>({k:i+1,role:c.role||"",fio:c.fio||"",phones:c.phones||[]})));
+const ctsOf=l=>[{k:0,role:l.pos||"Генеральный директор",fio:l.fio||"",phones:phonesOf(l)}].concat((l.cs||[]).map((c,i)=>({k:i+1,role:c.role||"",fio:c.fio||"",phones:c.phones||[]})));
 function setCt(l,k,p){if(k===0){if("role"in p)l.pos=p.role;if("fio"in p)l.fio=p.fio;if("phones"in p){l.phones=p.phones;delete l.phone;}}
   else{l.cs=l.cs||[];const c=l.cs[k-1];if(c){if("role"in p)c.role=p.role;if("fio"in p)c.fio=p.fio;if("phones"in p)c.phones=p.phones;}}}
 // контакт, к которому относится текущий шаг звонка
@@ -859,7 +859,7 @@ function contactSheet(k,opt){closeOv();opt=opt||{};
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>${isNew?"Новый контакт":"Контакт"}</b><small>${opt.sub?esc(opt.sub):"Должность, ФИО и номера одного человека"}</small></div></div>
     <div class="f"><label for="ct_r">Должность / роль</label><input id="ct_r" value="${esc(c.role)}" placeholder="ГД, ФД, главбух…">
-      <div class="rlr">${["ГД","ФД"].map(r=>`<button class="rl" type="button" data-setrole="${r}">${r}</button>`).join("")}</div></div>
+      <div class="rlr">${[["ГД","Генеральный директор"],["ФД","Финансовый директор"]].map(([s,f])=>`<button class="rl" type="button" data-setrole="${f}">${s}</button>`).join("")}</div></div>
     <div class="f"><label for="ct_n">ФИО</label><input id="ct_n" value="${esc(c.fio)}" placeholder="Иванов Иван Петрович"></div>
     <div class="f"><label>Телефоны</label><div id="ct_ph">${ph.map(p=>`<input class="cph" type="tel" inputmode="tel" value="${esc(p)}" placeholder="+7 ..." style="margin-bottom:8px">`).join("")}</div>
       <button class="lnk" type="button" id="ct_more">+ ещё номер</button></div>
@@ -881,7 +881,7 @@ function contactSheet(k,opt){closeOv();opt=opt||{};
 // после «ГД дал номер ФД»: сразу предлагаем записать контакт ФД (или править уже записанный)
 function askContact(){const l=LEADS[CALL.inn],cs=ctsOf(l),f=cs.find(c=>isFD(c.role));
   if(f)contactSheet(f.k,{sub:"Допиши или поправь контакт ФД",skip:"Пропустить"});
-  else contactSheet(null,{role:"ФД",sub:"Запиши ФД, пока помнишь. ГД остаётся как был",skip:"Пропустить"});}
+  else contactSheet(null,{role:"Финансовый директор",sub:"Запиши ФД, пока помнишь. ГД остаётся как был",skip:"Пропустить"});}
 function askWho(){closeOv();
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Другой человек</b><small>Кого пробуешь и как на него выйти</small></div></div>
@@ -977,7 +977,7 @@ function drawCall(){clearInterval(TM);
   const th=theme&&THEMES[theme]?THEMES[theme].name:"",ct=ctForNode(l,cur.id),ph=ct.phones[0],hook=(l.hooks||[])[0];
   const isTh=cur.id==="themeA"||cur.id==="themeB";const opts=cur.id==="start"?n.opts:n.opts.concat([isTh?["Другая тема","@custom","своя тема и зацепка"]:cur.id==="exits"?["Другой человек","@who","кто это и как на него выйти"]:["Другое","other"]]);
   main.innerHTML=`<div class="ch"><button class="ib" type="button" data-callclose aria-label="Закрыть">${IC.x}</button><div class="ct">${esc(shortName(l.name))}${th?" · "+esc(th):""}</div><div class="tm" id="tm">00:00</div></div>
-    <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}<span class="rl on" style="pointer-events:none">${esc(ct.role)}</span><button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
+    <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}<span class="rl on" style="pointer-events:none">${esc(isGD(ct.role)?"ГД":isFD(ct.role)?"ФД":ct.role)}</span><button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
     <div class="prog">${Array.from({length:5},(_,i)=>`<i class="${i<Math.min(CALL.hist.length,5)?"on":""}"></i>`).join("")}</div>
     <div class="path">${CALL.hist.map(h=>esc(N[h.id].label)).join(" › ")}</div>
     <p class="q">${esc(n.q)}</p>${sayH(n.say,"Скажи")}
@@ -1069,7 +1069,7 @@ function openProfile(){closeOv();
     <div class="f"><label for="pf_p">Должность</label><input id="pf_p" value="${esc(PROFILE.pos)}" placeholder="Не заполнено — в фразах будет [должность]"></div>
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 24</p></div>`;
+    <p class="demo">версия 25</p></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
