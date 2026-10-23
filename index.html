@@ -209,6 +209,10 @@ body.deep .demo{display:none}
 
 .phr{display:flex;gap:8px;align-items:center;margin-top:8px}.phr input{flex:1}.xph{width:42px;height:42px;border-radius:50%;background:var(--s2);border:0;color:var(--fg);display:grid;place-items:center;flex:none;padding:0;cursor:pointer}.xph svg{width:18px;height:18px}
 
+.rl{flex:none;border-radius:999px;padding:6px 11px;font:600 12.5px Inter,sans-serif;background:#161616;color:#8a8a8a;white-space:nowrap}
+.rl.on{background:rgba(255,255,255,.12);color:#fff}
+.rlr{display:flex;gap:8px;margin-top:10px}
+
 </style>
 <style>
 #splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease;touch-action:manipulation}
@@ -263,7 +267,7 @@ body.deep .demo{display:none}
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 22 · 23.10 15:10</p>
+  <p class="demo" id="ver">версия 24 · 23.10 15:50</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -802,8 +806,8 @@ function drawLead(inn){
   const phones=phonesOf(l);
   const contacts=`<div class="sec"><h3>Контакты</h3>${l.closed?"":`<button class="lnk" type="button" data-addph>+ Номер</button>`}</div>
     ${(l.fio||l.pos)?`<div class="cr"><div><b>${esc(l.fio||"")}</b><small>${esc(l.pos||"контакт")}</small></div></div>`:""}
-    ${phones.map((ph,i)=>`<div class="cr"><div><b>${esc(fmtPhone(ph))}</b></div><button class="ic" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button><a class="ic call" href="${esc(telHref(ph))}" aria-label="Позвонить">${IC.phone}</a><button class="x" type="button" data-delph="${i}" aria-label="Убрать номер">×</button></div>`).join("")||`<p class="mut pad" style="margin:0">Номеров нет.</p>`}
-    ${PH_F&&!l.closed?`<form id="phf" class="f" style="display:flex;gap:8px"><input id="p_new" inputmode="tel" placeholder="8 900 000-00-00" aria-label="Новый телефон"><button class="gbtn" type="submit" style="height:48px">Добавить</button></form>`:""}`;
+    ${phones.map((ph,i)=>`<div class="cr"><div><b>${esc(fmtPhone(ph))}</b></div><button class="rl${roleOf(l,ph)?" on":""}" type="button" data-role="${i}" aria-label="Роль номера">${esc(roleOf(l,ph)||"+ роль")}</button><button class="ic" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button><a class="ic call" href="${esc(telHref(ph))}" aria-label="Позвонить">${IC.phone}</a><button class="x" type="button" data-delph="${i}" aria-label="Убрать номер">×</button></div>`).join("")||`<p class="mut pad" style="margin:0">Номеров нет.</p>`}
+    ${PH_F&&!l.closed?`<form id="phf" class="f"><div style="display:flex;gap:8px"><input id="p_new" inputmode="tel" placeholder="8 900 000-00-00" aria-label="Новый телефон"><button class="gbtn" type="submit" style="height:48px">Добавить</button></div><div class="rlr">${ROLES.filter(Boolean).map(r=>`<button class="rl${PROLE===r?" on":""}" type="button" data-prole="${r}">${r}</button>`).join("")}</div></form>`:""}`;
   const hooks=`<div class="sec"><h3>Зацепки</h3>${l.closed?"":`<button class="lnk" type="button" data-addhook>+ Добавить</button>`}</div>
     ${hookNow.length?`<div class="petrol" style="margin-bottom:8px"><i>СПРОСИ НА ЗВОНКЕ</i>${hookNow.map(x=>`«Как прошло: ${esc(x.t.toLowerCase())}? Вы говорили об этом в прошлый раз».`).join("<br>")}</div>`:""}
     ${(l.hooks||[]).map((x,i)=>`<div class="hk"><div class="petrol"><span><b>${esc(x.t)}</b>${x.d?` · ${esc(dm(x.d))}`:""}</span><button class="x" type="button" data-delhook="${i}" aria-label="Убрать">×</button></div></div>`).join("")||`<p class="mut pad" style="margin:0">Что клиент сказал и за что зацепиться в следующий раз.</p>`}
@@ -818,8 +822,10 @@ function drawLead(inn){
     <div class="bar">${l.closed?`<button class="btn" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`:`<button class="btn" type="button" data-startcall="${esc(l.inn)}">Начать звонок</button>${l.next?`<button class="rb" type="button" data-cal aria-label="В календарь">${IC.cal}</button>`:""}`}${last?`<button class="rb" type="button" data-exp aria-label="Скопировать итог">${IC.copy}</button>`:""}</div>`;
   const redo=()=>drawLead(inn);
   main.querySelectorAll("[data-delhook]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delhook;askDel("Удалить зацепку?",(l.hooks[i]||{}).t||"",async()=>{l.hooks.splice(i,1);await save(l);redo();});});
-  main.querySelectorAll("[data-delph]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delph;askDel("Удалить номер?",fmtPhone(phonesOf(l)[i]||""),async()=>{const a=phonesOf(l).slice();a.splice(i,1);l.phones=a;delete l.phone;await save(l);redo();});});
-  const pf=document.getElementById("phf");if(pf){pf.onsubmit=async e=>{e.preventDefault();const v=document.getElementById("p_new").value.trim();if(!v)return;l.phones=phonesOf(l).concat(v);delete l.phone;PH_F=false;await save(l);redo();};document.getElementById("p_new").focus();}
+  main.querySelectorAll("[data-delph]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delph;askDel("Удалить номер?",fmtPhone(phonesOf(l)[i]||""),async()=>{const a=phonesOf(l).slice();setRole(l,a[i],"");a.splice(i,1);l.phones=a;delete l.phone;await save(l);redo();});});
+  main.querySelectorAll("[data-role]").forEach(b=>b.onclick=async()=>{const ph=phonesOf(l)[+b.dataset.role],cur=roleOf(l,ph);setRole(l,ph,ROLES[(ROLES.indexOf(cur)+1)%ROLES.length]);await save(l);redo();});
+  main.querySelectorAll("[data-prole]").forEach(b=>b.onclick=()=>{PROLE=b.dataset.prole===PROLE?"":b.dataset.prole;main.querySelectorAll("[data-prole]").forEach(x=>x.classList.toggle("on",x.dataset.prole===PROLE));});
+  const pf=document.getElementById("phf");if(pf){pf.onsubmit=async e=>{e.preventDefault();const v=document.getElementById("p_new").value.trim();if(!v)return;l.phones=phonesOf(l).concat(v);delete l.phone;if(PROLE)setRole(l,v,PROLE);PROLE="";PH_F=false;await save(l);redo();};document.getElementById("p_new").focus();}
   const hf=document.getElementById("hookf");if(hf){hf.onsubmit=async e=>{e.preventDefault();const tt=document.getElementById("h_t").value.trim();if(!tt)return;l.hooks=(l.hooks||[]);l.hooks.unshift({t:tt,d:document.getElementById("h_d").value});HOOK_F=false;await save(l);redo();};document.getElementById("h_t").focus();}
   const sf=document.getElementById("stf");if(sf)sf.onsubmit=async e=>{e.preventDefault();const g=id=>document.getElementById(id).value.trim();
     l.nextWhat=g("e_w");l.next=g("e_d")||(g("e_t")?iso(today()):"");l.nextTime=g("e_t");EDIT_STEP=false;await save(l);toast("Сохранено");redo();};
@@ -833,6 +839,27 @@ let DEL_YES=null;
 const mkCustom=(text,hook)=>({name:text,hint:"",gd:"вопросы по теме «"+text+"»",zone:"вы отвечаете за финансы и банковское обслуживание",own:true,
   fact:["«Изучил вашу компанию, вижу, что "+(hook||"[факт из подготовки]")+". Как у вас сейчас устроен вопрос: "+text+"?» [слушаем]"],
   topic:"теме «"+text+"»",why:"«Понял вас. Подскажите, что для вас сейчас важнее всего по этому вопросу — чтобы я понимал, с чем к вам вернуться?»"});
+const ROLES=["","ГД","ФД","Приёмная"];
+const roleOf=(l,ph)=>(l.pr&&l.pr[ph])||"";
+const setRole=(l,ph,r)=>{l.pr=l.pr||{};if(r)l.pr[ph]=r;else delete l.pr[ph];};
+let PROLE="";
+const FD_NODES=["gdfd","gotContact"];
+function askContact(){closeOv();
+  const l=LEADS[CALL.inn];
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Контакт финансового директора</b><small>Запиши, пока помнишь — номер станет основным для следующего звонка</small></div></div>
+    <div class="f"><label for="fd_n">ФИО</label><input id="fd_n" placeholder="Иванов Иван Петрович"></div>
+    <div class="f"><label for="fd_p">Телефон</label><input id="fd_p" type="tel" inputmode="tel" placeholder="+7 ..."></div>
+    <button class="btn" type="button" id="fd_go" style="margin-top:16px">Записать</button>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Пропустить</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  o.querySelector("#fd_n").focus();
+  o.querySelector("#fd_go").onclick=async()=>{const n=o.querySelector("#fd_n").value.trim(),p=o.querySelector("#fd_p").value.trim();
+    if(!n&&!p)return toast("Впиши ФИО или телефон");
+    if(p){const ph=phonesOf(l).filter(x=>x!==p);l.phones=[p].concat(ph);delete l.phone;setRole(l,p,"ФД");}
+    if(n){const old=l.fio?l.fio+(l.pos?" ("+l.pos+")":""):"";l.fio=n;l.pos="ФД"+(old?" · ранее: "+old:"");}
+    await save(l);closeOv();toast("Контакт ФД записан");drawCall();};
+}
 function askWho(){closeOv();
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Другой человек</b><small>Кого пробуешь и как на него выйти</small></div></div>
@@ -928,11 +955,12 @@ function drawCall(){clearInterval(TM);
   const th=theme&&THEMES[theme]?THEMES[theme].name:"",ph=phonesOf(l)[0],hook=(l.hooks||[])[0];
   const isTh=cur.id==="themeA"||cur.id==="themeB";const opts=cur.id==="start"?n.opts:n.opts.concat([isTh?["Другая тема","@custom","своя тема и зацепка"]:cur.id==="exits"?["Другой человек","@who","кто это и как на него выйти"]:["Другое","other"]]);
   main.innerHTML=`<div class="ch"><button class="ib" type="button" data-callclose aria-label="Закрыть">${IC.x}</button><div class="ct">${esc(shortName(l.name))}${th?" · "+esc(th):""}</div><div class="tm" id="tm">00:00</div></div>
-    <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}<button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
+    <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}${roleOf(l,ph)?`<span class="rl on" style="pointer-events:none">${esc(roleOf(l,ph))}</span>`:""}<button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
     <div class="prog">${Array.from({length:5},(_,i)=>`<i class="${i<Math.min(CALL.hist.length,5)?"on":""}"></i>`).join("")}</div>
     <div class="path">${CALL.hist.map(h=>esc(N[h.id].label)).join(" › ")}</div>
     <p class="q">${esc(n.q)}</p>${sayH(n.say,"Скажи")}
     <div class="opts">${opts.map(([t,nx,subt,thm])=>optH(t,nx,subt,thm)).join("")}</div>
+    ${cur.id==="gdfd"?`<button class="gbtn" type="button" data-fdadd style="margin-top:12px;width:100%">+ Записать ФИО и номер ФД</button>`:""}
     <div class="cf"><button type="button" data-callback>${IC.back}${CALL.hist.length>1?"Шаг назад":"К карточке"}</button>${cur.id!=="start"?`<button type="button" data-next="other" style="color:#fff">Записать итог</button>`:""}</div>`;
   const tm=document.getElementById("tm"),tick=()=>{const s=Math.floor((Date.now()-CALL.t0)/1000);tm.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");};
   tick();TM=setInterval(tick,1000);window.scrollTo(0,0);
@@ -1019,7 +1047,7 @@ function openProfile(){closeOv();
     <div class="f"><label for="pf_p">Должность</label><input id="pf_p" value="${esc(PROFILE.pos)}" placeholder="Не заполнено — в фразах будет [должность]"></div>
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 22</p></div>`;
+    <p class="demo">версия 24</p></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
@@ -1204,13 +1232,14 @@ document.addEventListener("click",ev=>{
   if(c("[data-back]")){CUR=null;EDIT_STEP=HOOK_F=PH_F=false;return draw();}
   if(c("[data-editstep]")){EDIT_STEP=true;return drawLead(CUR);}
   if(c("[data-editcancel]")){EDIT_STEP=false;return drawLead(CUR);}
-  if(c("[data-addph]")){PH_F=!PH_F;return drawLead(CUR);}
+  if(c("[data-addph]")){PH_F=!PH_F;PROLE="";return drawLead(CUR);}
   if(c("[data-addhook]")){HOOK_F=!HOOK_F;return drawLead(CUR);}
   const cp=c("[data-copy]");if(cp&&cp.dataset.copy)return copy(cp.dataset.copy);
   if(c("[data-callclose]")){const inn=CALL.inn;CALL=null;CUR=inn;return draw();}
   if(CALL){
+    if(c("[data-fdadd]"))return askContact();
     const nx=c("[data-next]");
-    if(nx){if(nx.dataset.next==="@custom")return askTheme(CALL.hist[CALL.hist.length-1].id);if(nx.dataset.next==="@who")return askWho();const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);return;}
+    if(nx){if(nx.dataset.next==="@custom")return askTheme(CALL.hist[CALL.hist.length-1].id);if(nx.dataset.next==="@who")return askWho();const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);if(FD_NODES.includes(nx.dataset.next))askContact();return;}
     if(c("[data-callback]")){if(CALL.hist.length>1){CALL.hist.pop();drawCall();}else{const inn=CALL.inn;CALL=null;CUR=inn;draw();}}
   }
 });
