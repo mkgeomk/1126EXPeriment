@@ -76,11 +76,13 @@ h1.t{font:700 28px/1.12 Inter,sans-serif;letter-spacing:-.02em;margin:16px 0 4px
 /* нижнее меню */
 .tabs{position:fixed;left:0;right:0;bottom:0;height:calc(84px + env(safe-area-inset-bottom,0px));background:#000;border-top:1px solid var(--line);z-index:5;padding:9px 6px env(safe-area-inset-bottom,0px)}
 .tabs-in{display:grid;grid-template-columns:repeat(5,1fr);max-width:640px;margin:0 auto}
-.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font:500 10.5px Inter,sans-serif;color:#6f6f6f;text-align:center}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;font:500 10.5px Inter,sans-serif;color:#6f6f6f;text-align:center}
 .tab[aria-current="true"]{color:#fff}
 .tab.call i{width:50px;height:50px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;margin-top:-6px;box-shadow:0 0 0 5px #000}
 .tab.call svg{width:24px;height:24px;stroke-width:2}
 body.deep .tabs{display:none}
+.bdg{position:absolute;top:-3px;left:50%;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font:700 11px/18px Inter,sans-serif;text-align:center;box-shadow:0 0 0 2px #000}
+.due{background:linear-gradient(90deg,rgba(229,72,77,.14),transparent 80%);box-shadow:inset 3px 0 0 var(--bad)}.due .row{padding-left:12px}
 /* нижняя панель действий */
 .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;align-items:center;justify-content:center;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to top,#000 70%,rgba(0,0,0,0));z-index:4}
 .bar>*{max-width:640px}
@@ -220,6 +222,17 @@ body.deep .demo{display:none}
 .rlr{display:flex;gap:8px;margin-top:8px}
 .ph input.cph,input.cph{width:100%;min-width:0;background:#141414;border:0;border-radius:14px;padding:0 16px;height:48px;font-size:15px;outline:0;-webkit-appearance:none;appearance:none;display:block}
 
+.nlast{display:block;width:100%;text-align:left;background:#101010;border-radius:16px;padding:12px 14px}
+.nlast span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:15px}
+.nlast small{display:block;color:var(--mut);font-size:12.5px;margin-top:4px}
+.nck{display:flex;align-items:center;gap:10px;margin:14px 0 4px;font-size:15px}
+.nck input{width:20px;height:20px;accent-color:var(--acc)}
+.ni{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.ni>div{flex:1;min-width:0;font-size:15px}
+.ni small{display:block;color:var(--mut);font-size:12.5px;margin-top:3px}
+
+mark.ph2{background:rgba(240,144,63,.22);color:inherit;border-radius:6px;padding:0 4px}
+
 </style>
 <style>
 #splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease;touch-action:manipulation}
@@ -274,7 +287,7 @@ body.deep .demo{display:none}
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 25 · 23.10 15:55</p>
+  <p class="demo" id="ver">версия 38 · 23.10 18:15</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -494,7 +507,7 @@ const store = {
     try { localStorage.setItem("cx_"+k,v); } catch { mem[k]=v; } res(true); }); },
 };
 let LEADS = {};               // inn -> lead
-const COOLDOWN_DAYS = 30;
+let COOLDOWN_DAYS = 14;
 const HIST_MAX = 12;          // история обрезается, чтобы запись влезала в 4096 символов облака Telegram
 async function loadAll(){
   const ks = (await store.keys()).filter(k=>k.startsWith("lead_"));
@@ -627,6 +640,10 @@ const byName=(a,b)=>a.name.localeCompare(b.name,"ru");
 const active=()=>Object.values(LEADS).filter(l=>!l.closed);
 const isNew=l=>!l.closed&&l.status==="Новый клиент";
 const NEW_LIMIT=5;
+// статусы, которые недозвон и «Другое» не понижают (клиент уже дальше холодного звонка)
+const ADV_ST=["Назначен 2-й звонок","Назначена встреча","Назначена видео-встреча","Отправить КП","ХОЛД"];
+// автоматические даты не ставим на выходные: сб и вс переносим на понедельник (вручную выбрать можно любую)
+const workDay=s=>{const d=new Date(s+"T00:00:00"),w=d.getDay();if(w===6)d.setDate(d.getDate()+2);else if(w===0)d.setDate(d.getDate()+1);return iso(d);};
 function workdays(from,to){let n=0;const d=new Date(from+"T00:00:00"),e=new Date(to+"T00:00:00");while(d<e){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)n++;}return n;}
 const ini=n=>{const w=String(n).replace(/[«»"“”,]/g," ").split(/\s+/).filter(x=>x&&!/^(ООО|АО|ПАО|ЗАО|ИП|ОАО)$/i.test(x));return ((w[0]||"?")[0]+((w[1]||w[0]||"?")[w[1]?0:1]||"")).toUpperCase();};
 const shortName=n=>String(n).replace(/^(ООО|АО|ПАО|ЗАО|ИП|ОАО)\s*/i,"").replace(/,?\s*(ООО|АО|ПАО|ЗАО|ИП|ОАО)\s*$/i,"").replace(/[«»]/g,"").trim()||n;
@@ -637,6 +654,14 @@ const stShort=s=>({"Назначен 2-й звонок":["2-й звонок","o"
 const pillH=(t,c)=>`<span class="pill p-${c}">${esc(t)}</span>`;
 const tagTok=t=>{const m=String(t||"").match(/^[А-ЯЁA-Z0-9\-]+/);return m?m[0]:"";};
 const coolOf=l=>l.closed&&typeof l.closed.cool==="number"?l.closed.cool:COOLDOWN_DAYS;   // «Отказ банка» — без паузы
+// дата, с которой клиента из архива можно вернуть в работу; дата пересмотра (напоминание); клиенты, чей срок наступил
+const backDate=l=>typeof l.closed.cool==="number"?addDays(l.closed.cool,l.closed.date):(l.closed.rem||addDays(COOLDOWN_DAYS,l.closed.date));
+const revDate=l=>l.closed?(l.closed.rem||(typeof l.closed.cool==="number"?"":addDays(COOLDOWN_DAYS,l.closed.date))):"";
+const dueArch=()=>{const t=iso(today());return Object.values(LEADS).filter(l=>l.closed&&revDate(l)&&revDate(l)<=t).sort((a,b)=>revDate(a).localeCompare(revDate(b)));};
+function updBadge(){const b=document.querySelector('.tab[data-tab="archive"]');if(!b)return;const n=dueArch().length;let s=b.querySelector(".bdg");
+  if(!n){if(s)s.remove();return;}
+  if(!s){s=document.createElement("span");s.className="bdg";b.appendChild(s);}
+  s.textContent=n>9?"9+":String(n);}
 function whenTxt(l){const t=iso(today());if(!l.next)return "—";if(l.next===t)return l.nextTime||"сегодня";if(l.next<t){const d=daysBetween(l.next,t);return d===1?"вчера":dm(l.next);}return dm(l.next)+(l.nextTime?" "+l.nextTime:"");}
 function subLine(l){return [fioShort(l.fio),tagTok(l.tag),l.reg].filter(Boolean).join(" · ");}
 function inTxt(tm){const [h,m]=tm.split(":").map(Number),d=new Date();const diff=h*60+m-(d.getHours()*60+d.getMinutes());if(diff<=0)return "сейчас";if(diff<60)return "через "+diff+" мин";return "через "+Math.floor(diff/60)+" ч"+(diff%60?" "+diff%60+" мин":"");}
@@ -644,17 +669,58 @@ function setTab(t){TAB=t;CUR=null;CALL=null;SEL=null;draw();}
 function startCall(inn){const l=LEADS[inn];if(!l)return;CALL={inn,t0:Date.now(),hist:[{id:"start",theme:l.theme||null}]};CUR=null;draw();}
 
 // ---------- Профиль и подстановки в фразы ----------
-let PROFILE={name:"",bank:"",pos:"",done:false};
+let PROFILE={name:"",bank:"",pos:"",cool:14,done:false};
 async function loadProfile(){const v=await store.get(["profile"]);try{const p=JSON.parse((v&&v.profile)||"null");if(p&&typeof p==="object")Object.assign(PROFILE,p);}catch{}}
+// пауза после отказа клиента: по умолчанию 14 дней, меняется в профиле
+const COOL_TXT=new Map();
+function daysRu(n){const a=n%100,b=n%10;return n+" "+((a>10&&a<15)?"дней":b===1?"день":(b>1&&b<5)?"дня":"дней");}
+function applyCool(){const n=Math.max(1,Math.min(365,parseInt(PROFILE.cool,10)||14));COOLDOWN_DAYS=n;
+  for(const k of ["rKonk","rPul","rUsl","rNet","sbros"])DUE[k]=n;
+  const walk=o=>{if(!o||typeof o!=="object")return;for(const k of Object.keys(o)){const v=o[k];
+    if(typeof v==="string"){let m=COOL_TXT.get(o);if(!m){m={};COOL_TXT.set(o,m);}
+      if(m[k]===undefined){if(/14 дней/.test(v))m[k]=v;else continue;}
+      o[k]=m[k].replace(/14 дней/g,daysRu(n));}
+    else if(v&&typeof v==="object")walk(v);}};
+  [N,TAGHELP,CHEAT_TAGS,CHEAT_MAP].forEach(walk);}
 async function saveProfile(){await store.set("profile",JSON.stringify(PROFILE));}
 const initial=()=>(((PROFILE.name||TGNAME||"Г").trim()[0])||"Г").toUpperCase();
-function sub(s){return String(s).replace(/\[(имя|Имя)\]/g,PROFILE.name||"[Имя]").replace(/\[банк\]/g,PROFILE.bank||"[банк]").replace(/\[должность\]/g,PROFILE.pos||"[должность]");}
+// имена из карточки клиента: ГД и ФД. Нет имени — видимая заглушка в скобках
+const PATR=/(ович|евич|ьич|овна|евна|ична|инична)$/i;
+function firstNames(fio){const w=String(fio||"").trim().split(/\s+/).filter(Boolean);
+  if(w.length>=3)return w[1]+" "+w[2];
+  if(w.length===2)return PATR.test(w[1])?w[0]+" "+w[1]:w[1];
+  return w[0]||"";}
+function insW(w){const f=/(на|а|я)$/i.test(w)&&!/(ович|евич|ич|ей|ий|й)$/i.test(w);
+  if(/ович$|евич$|ьич$/i.test(w))return w+"ем";
+  if(/(овна|евна|ична)$/i.test(w))return w.slice(0,-1)+"ой";
+  if(/ий$/i.test(w))return w.slice(0,-2)+"ием";if(/ей$/i.test(w))return w.slice(0,-2)+"еем";if(/й$/i.test(w))return w.slice(0,-1)+"ем";
+  if(/ь$/i.test(w))return w.slice(0,-1)+"ем";if(/я$/i.test(w))return w.slice(0,-1)+"ей";if(/а$/i.test(w))return w.slice(0,-1)+"ой";
+  return w+"ом";}
+const insName=n=>n.split(" ").map(insW).join(" ");
+function roleNames(){const l=CALL&&LEADS[CALL.inn];let gd="",fd="";
+  if(l&&typeof ctsOf==="function"){for(const c of ctsOf(l)){const n=firstNames(c.fio);if(!n)continue;if(!gd&&isGD(c.role))gd=n;if(!fd&&isFD(c.role))fd=n;}}
+  return {gd,fd};}
+const matchQ=(l,v)=>{v=String(v||"").toLowerCase().trim();if(!v)return true;
+  const cs=(typeof ctsOf==="function"?ctsOf(l):[]);
+  const txt=(l.name+" "+l.inn+" "+cs.map(c=>(c.fio||"")+" "+(c.role||"")).join(" ")).toLowerCase();
+  if(txt.includes(v))return true;
+  const vd=v.replace(/\D/g,"");if(vd.length<3)return false;
+  const norm=p=>String(p).replace(/\D/g,"").replace(/^[78]/,"");const q=vd.replace(/^[78]/,"");
+  return cs.some(c=>c.phones.some(p=>norm(p).includes(q)));};
+function curContactName(){const l=CALL&&LEADS[CALL.inn];if(!l||typeof ctForNode!=="function")return "";return firstNames((ctForNode(l,CALL.hist)||{}).fio);}
+function sub(s){const rn=roleNames(),id=CALL&&CALL.hist&&CALL.hist.length?CALL.hist[CALL.hist.length-1].id:"";
+  const talk=(id==="lprRe"||id==="meet");   // здесь «Геннадий Алексеевич» — тот, с кем уже говорите (ГД или ФД)
+  const who=talk?(curContactName()||"[имя ЛПР]"):(rn.fd||"[имя ФД]");
+  const ref=(id==="fd"&&!(CALL.hist.some(h=>h.id==="gd"||h.id==="gdfd")))?"[кто направил]":(rn.gd||"[имя ГД]");
+  return String(s)
+  .replace(/Геннадием Алексеевичем/g,talk?(curContactName()?insName(curContactName()):"[имя ЛПР]"):(rn.fd?insName(rn.fd):"[имя ФД]")).replace(/Геннадий Алексеевич/g,who)
+  .replace(/Иван Петрович/g,ref).replace(/\[(имя|Имя)\]/g,PROFILE.name||"[Имя]").replace(/\[банк\]/g,PROFILE.bank||"[банк]").replace(/\[должность\]/g,PROFILE.pos||"[должность]");}
 const headH=(mid,right)=>`<div class="head"><button class="avb" type="button" data-profile aria-label="Профиль">${esc(initial())}</button>${mid}<div class="hr">${right||""}</div></div>`;
 
 // ---------- Строка клиента ----------
 function rowH(l,o){o=o||{};const t=iso(today()),late=!!(l.next&&l.next<t&&!l.closed);
   const [pt,pc]=o.pill||(late?["Просрочено","r"]:stShort(l.status));
-  const right=o.rightB!=null?`<span class="rr"><b>${esc(o.rightB)}</b>${o.rightS?`<small>${esc(o.rightS)}</small>`:""}</span>`:`<span class="rr${late?" bad":""}"><b>${esc(whenTxt(l))}</b></span>`;
+  const right=o.rightB!=null?`<span class="rr${o.bad?" bad":""}"><b>${esc(o.rightB)}</b>${o.rightS?`<small>${esc(o.rightS)}</small>`:""}</span>`:`<span class="rr${late?" bad":""}"><b>${esc(whenTxt(l))}</b></span>`;
   return `<button class="row" type="button" data-open="${esc(l.inn)}"><span class="av">${esc(ini(l.name))}</span><span class="rm"><b>${esc(l.name)}</b><small>${esc(o.sub!=null?o.sub:subLine(l))}</small></span>${right}${o.noPill?"":pillH(pt,pc)}</button>`;}
 
 // ---------- Сортировки ----------
@@ -680,7 +746,7 @@ function drawToday(){
   const nw=active().filter(isNew);
   const mid=`<div class="seg" style="margin:0 auto"><button type="button" data-seg="calls" class="${SEG==="calls"?"on":""}">Звонки</button><button type="button" data-seg="new" class="${SEG==="new"?"on":""}">Новые${nw.length?` <b>${nw.length}</b>`:""}</button></div>`;
   main.innerHTML=headH(mid,`<button class="ib" type="button" data-imp aria-label="Загрузить список">${IC.upload}</button>`)+
-   `<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН или ФИО" value="${esc(QTXT)}" aria-label="Поиск"></div><div id="tl"></div>`;
+   `<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН, ФИО или телефон" value="${esc(QTXT)}" aria-label="Поиск"></div><div id="tl"></div>`;
   fillToday();
   document.getElementById("q").addEventListener("input",e=>{QTXT=e.target.value;fillToday();});
 }
@@ -690,13 +756,13 @@ function todayData(){const t=iso(today()),act=active().filter(l=>!isNew(l));
     nod=act.filter(l=>!l.next),
     soon=act.filter(l=>l.next>t&&l.next<=addDays(3)).sort((a,b)=>a.next.localeCompare(b.next)||byTime(a,b)),
     nw=active().filter(isNew),
-    rv=Object.values(LEADS).filter(l=>l.closed&&l.closed.rem&&l.closed.rem<=t).sort((a,b)=>a.closed.rem.localeCompare(b.closed.rem));
+    rv=dueArch();
   const nowS=nowHM(),up=todayL.find(l=>!l.nextTime||l.nextTime>=nowS)||null;
   return {todayL,over,nod,soon,nw,up,act,rv};}
 function fillToday(){
   const el=document.getElementById("tl");if(!el)return;
   const v=QTXT.trim().toLowerCase();
-  if(v){const res=Object.values(LEADS).filter(l=>(l.name+" "+l.inn+" "+(l.fio||"")).toLowerCase().includes(v)).sort(byName);
+  if(v){const res=Object.values(LEADS).filter(l=>matchQ(l,v)).sort(byName);
     el.innerHTML=res.length?`<div class="lst">${res.map(l=>rowH(l,l.closed?{pill:["Архив","m"],rightB:"архив"}:{})).join("")}</div>`:`<p class="mut pad">Ничего не найдено.</p>`;return;}
   const d=todayData();
   if(SEG==="new"){el.innerHTML=newHtml(d.nw);return;}
@@ -715,7 +781,7 @@ function fillToday(){
   const chip=(k,t,n,red)=>`<button type="button" data-filt="${k}" class="${FILT===k?"on":""}">${t}${n!=null?` <b${red&&n>0&&FILT!==k?' class="r"':""}>${n}</b>`:""}</button>`;
   const chips=`<div class="chips">${chip("today","Сегодня",cnt.today)}${chip("over","Просрочено",cnt.over,true)}${chip("all","Все звонки",act.length)}</div>`;
   let list;
-  if(FILT==="today")list=todayL.map(l=>rowH(l)).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"}))).concat(rv.map(l=>rowH(l,{pill:["Пересмотр","o"],rightB:dm(l.closed.rem),sub:"Отказ банка · "+(tagTok(l.tag)||"БАНК")})));
+  if(FILT==="today")list=todayL.map(l=>rowH(l)).concat(nod.map(l=>rowH(l,{pill:["без даты","m"],rightB:"—"}))).concat(rv.map(l=>{const tt=iso(today()),late=revDate(l)<tt,kp=l.closed.status.startsWith("Передан");return `<div class="due">${rowH(l,{pill:[kp?"Сделка":"Пересмотр","r"],rightB:late?"просрочено":"сегодня",rightS:dm(revDate(l)),bad:true,sub:kp?"Передан в КП · проверить статус":(l.closed.status==="Отказ банка"?"Отказ банка · "+(bankNames(l)?bankNames(l)+" · ":""):(tagTok(l.tag)||"Отказ")+" · ")+(l.closed.reason||"")})}</div>`;}));
   else if(FILT==="over")list=over.map(l=>rowH(l));
   else if(FILT==="3d")list=soon.map(l=>rowH(l));
   else list=act.slice().sort((a,b)=>(a.next||"9").localeCompare(b.next||"9")||byTime(a,b)).map(l=>rowH(l));
@@ -747,12 +813,12 @@ function drawLeads(arch){
   const head=headH(`<div class="hm">Клиенты · ${all.length}</div>`,(SEL?`<button class="lnk" type="button" data-selcancel>Готово</button>`:selBtn()+`<button class="ib" type="button" data-imp aria-label="Загрузить список">${IC.upload}</button>`));
   const order=["Новые","Звонок","Встреча","КП","ХОЛД","Другое"],cnt={};all.forEach(l=>{const g=grp(l);cnt[g]=(cnt[g]||0)+1;});
   if(FILT_CL!=="all"&&!cnt[FILT_CL])FILT_CL="all";
-  main.innerHTML=head+`<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН или ФИО" aria-label="Поиск"></div>
+  main.innerHTML=head+`<div class="search">${IC.search}<input id="q" placeholder="Компания, ИНН, ФИО или телефон" aria-label="Поиск"></div>
    <div class="chips"><button type="button" data-chipcl="all" class="${FILT_CL==="all"?"on":""}">Все ${all.length}</button>${order.filter(g=>cnt[g]).map(g=>`<button type="button" data-chipcl="${g}" class="${FILT_CL===g?"on":""}">${g} ${cnt[g]}</button>`).join("")}</div>
    <label class="sorts">Сортировка <select id="sortcl" aria-label="Сортировка">${SORTS.map(([k,t])=>`<option value="${k}"${k===SORT_CL?" selected":""}>${t}</option>`).join("")}</select></label>
    <div class="lst" id="ll"></div>${SEL?'<div id="selbar"></div>':""}`;
   const fill=()=>{const v=document.getElementById("q").value.trim().toLowerCase();
-    const rows=sortLeads(all.filter(l=>(FILT_CL==="all"||grp(l)===FILT_CL)&&(!v||(l.name+" "+l.inn+" "+(l.fio||"")).toLowerCase().includes(v))),SORT_CL);
+    const rows=sortLeads(all.filter(l=>(FILT_CL==="all"||grp(l)===FILT_CL)&&matchQ(l,v)),SORT_CL);
     SELVIS=rows.map(l=>l.inn);
     document.getElementById("ll").innerHTML=rows.map(l=>SEL?selRowH(l):(SORT_CL==="rev"||SORT_CL==="imp"||SORT_CL==="exp")?rowH(l,{rightB:FMT_B(l[SORT_CL]),rightS:sortCap(SORT_CL)}):rowH(l)).join("")||`<p class="mut pad">Пока пусто.</p>`;
     if(SEL)updSelBar();};
@@ -765,24 +831,29 @@ function drawLeads(arch){
 // ---------- Архив ----------
 let ARCH_F="all",ARCH_OPEN=null;
 function drawArchive(){
-  const all=Object.values(LEADS).filter(l=>l.closed).sort((a,b)=>(b.closed.date||"").localeCompare(a.closed.date||""));
-  const g=l=>l.closed.status.startsWith("Передан")?"В КП":l.closed.status;
-  const cnt={};all.forEach(l=>{cnt[g(l)]=(cnt[g(l)]||0)+1;});
-  if(ARCH_F!=="all"&&!cnt[ARCH_F])ARCH_F="all";
   const t=iso(today());
-  SELVIS=all.filter(l=>ARCH_F==="all"||g(l)===ARCH_F).map(l=>l.inn);FILL=drawArchive;
-  const rows=all.filter(l=>ARCH_F==="all"||g(l)===ARCH_F).map(l=>{
-    const back=addDays(coolOf(l),l.closed.date),left=daysBetween(t,back),code=tagTok(l.tag)||(g(l)==="В КП"?"КП":"Отказ");
+  const cat=l=>l.closed.status.startsWith("Передан")?"В КП":l.closed.status==="Отказ банка"?"Отказ банка":(tagTok(l.tag)||"Отказ");
+  const key=l=>revDate(l)||"9999";
+  const all=Object.values(LEADS).filter(l=>l.closed).sort((a,b)=>key(a).localeCompare(key(b))||(b.closed.date||"").localeCompare(a.closed.date||""));
+  const cnt={};all.forEach(l=>{cnt[cat(l)]=(cnt[cat(l)]||0)+1;});
+  if(ARCH_F!=="all"&&!cnt[ARCH_F])ARCH_F="all";
+  const vis=all.filter(l=>ARCH_F==="all"||cat(l)===ARCH_F);
+  SELVIS=vis.map(l=>l.inn);FILL=drawArchive;
+  const rowOf=l=>{const rd=revDate(l),back=backDate(l),due=!!rd&&rd<=t,over=!!rd&&rd<t,canBack=t>=back,c=cat(l);
+    const bt=c==="Отказ банка"?bankTagList(l):[],code=c==="В КП"?"КП":bt.length>1?"БАНК ×"+bt.length:(tagTok(l.tag)||(c==="Отказ банка"?"БАНК":"Отказ")),subA=(bt.length?bankNames(l)+" · ":"")+(l.closed.reason||"");
+    const right=!rd?"без даты":over?daysBetween(rd,t)+" дн":due?"сегодня":"через "+daysBetween(t,rd)+" дн",rsub=over?"просрочено":(rd?dm(rd):"");
+    if(SEL)return selRowH(l,subA);
     const open=ARCH_OPEN===l.inn;
-    if(SEL)return selRowH(l,left>0?"снова можно с "+dm(back):"можно вернуть в работу");
-    return `<div><button class="row" type="button" data-archopen="${esc(l.inn)}"><span class="av">${esc(ini(l.name))}</span><span class="rm"><b>${esc(l.name)}</b><small>${esc(left>0?"снова можно с "+dm(back):"можно вернуть в работу")}</small></span><span class="rr"><b>${left>0?"через "+left+" дн":"готов"}</b></span>${pillH(code,g(l)==="В КП"?"g":"m")}</button>
+    return `<div${due?' class="due"':""}><button class="row" type="button" data-archopen="${esc(l.inn)}"><span class="av">${esc(ini(l.name))}</span><span class="rm"><b>${esc(l.name)}</b><small>${esc(subA)}</small></span><span class="rr${due?" bad":""}"><b>${esc(right)}</b>${rsub?`<small>${esc(rsub)}</small>`:""}</span>${pillH(code,due?"r":c==="В КП"?"g":"m")}</button>
      ${open?`<div class="step" style="flex-direction:column;align-items:stretch;gap:10px"><div><small>Итог · ${esc(ru(l.closed.date))}</small><b>${esc(l.closed.reason)}</b></div>
-      <div style="display:flex;gap:8px"><button class="gbtn" style="flex:1" type="button" data-open="${esc(l.inn)}">Открыть карточку</button>${left>0?`<div class="gbtn" style="flex:1;opacity:.5">С ${esc(dm(back))}</div>`:`<button class="btn" style="flex:1;height:44px;font-size:14px" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`}</div></div>`:""}</div>`;}).join("");
+      <div style="display:flex;gap:8px"><button class="gbtn" style="flex:1" type="button" data-open="${esc(l.inn)}">Открыть карточку</button>${canBack?`<button class="btn" style="flex:1;height:44px;font-size:14px" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`:`<div class="gbtn" style="flex:1;opacity:.5">С ${esc(dm(back))}</div>`}</div></div>`:""}</div>`;};
+  const dueL=vis.filter(l=>{const r=revDate(l);return r&&r<=t;}),rest=vis.filter(l=>!dueL.includes(l));
+  const body=dueL.length?`<h2 class="sh" style="color:var(--bad)">Пора вернуться · ${dueL.length}</h2>${dueL.map(rowOf).join("")}${rest.length?`<h2 class="sh">Остальные · ${rest.length}</h2>`:""}${rest.map(rowOf).join("")}`:vis.map(rowOf).join("");
   main.innerHTML=headH(`<div class="hm">Архив · ${all.length}</div>`,SEL?`<button class="lnk" type="button" data-selcancel>Готово</button>`:(all.length?selBtn():""))+
-   (all.length?`<div class="chips"><button type="button" data-archf="all" class="${ARCH_F==="all"?"on":""}">Все ${all.length}</button>${Object.keys(cnt).map(k=>`<button type="button" data-archf="${k}" class="${ARCH_F===k?"on":""}">${k} ${cnt[k]}</button>`).join("")}</div>`:"")+
-   `<div class="lst">${rows||`<p class="mut pad">Закрытых клиентов пока нет. Отказ после звонка переносит клиента сюда.</p>`}</div>${SEL?selBar():""}`;
+   (all.length?`<div class="chips"><button type="button" data-archf="all" class="${ARCH_F==="all"?"on":""}">Все ${all.length}</button>${Object.keys(cnt).map(k=>`<button type="button" data-archf="${esc(k)}" class="${ARCH_F===k?"on":""}">${esc(k)} ${cnt[k]}</button>`).join("")}</div>`:"")+
+   `<div class="lst">${body||`<p class="mut pad">Закрытых клиентов пока нет. Отказ после звонка переносит клиента сюда.</p>`}</div>${SEL?selBar():""}`;
 }
-async function returnLead(inn){const l=LEADS[inn];if(!l||!l.closed)return;const back=addDays(coolOf(l),l.closed.date);
+async function returnLead(inn){const l=LEADS[inn];if(!l||!l.closed)return;const back=backDate(l);
   if(iso(today())<back){toast("Снова можно с "+ru(back));return;}
   l.hist=l.hist||[];l.hist.push({d:iso(today()),st:"Возврат в работу",c:`после закрытия ${ru(l.closed.date)}: ${l.closed.reason}`});
   l.closed=null;l.status="Сделать холодный звонок";l.next=iso(today());l.nextTime="";l.nextWhat="первый звонок после возврата";
@@ -793,19 +864,20 @@ async function returnLead(inn){const l=LEADS[inn];if(!l||!l.closed)return;const 
 let EDIT_STEP=false,HOOK_F=false,PH_F=false;
 function statusSince(l){const h=l.hist||[];let i=h.length-1;while(i>=0&&h[i].st===l.status)i--;return h[i+1]?h[i+1].d:(l.created||iso(today()));}
 function expText(l,last){return `${last.tag?last.tag+". ":""}${last.c||last.st}. Следующий шаг: ${l.nextWhat||"—"}${l.next?" — "+ru(l.next)+(l.nextTime?" "+l.nextTime:""):""}.`;}
+const SVC=["Занесено в Callex","Возврат в работу","Отказ банка"];   // записи в истории, которые не звонки
 function drawLead(inn){
   const l=LEADS[inn];if(!l)return setTab("leads");
-  const t=iso(today()),h=l.hist||[],calls=h.filter(x=>x.st!=="Занесено в Callex"&&x.st!=="Возврат в работу");
-  const last=h.slice(-1)[0],since=statusSince(l),dSince=daysBetween(since,t);
-  const lastD=last?daysBetween(last.d,t):null;
-  const tags=[...(l.theme==="custom"&&l.themeText?[l.themeText]:l.theme&&THEMES[l.theme]?[THEMES[l.theme].name]:[]),tagTok(l.tag),l.closed?l.closed.status:stShort(l.status)[0]].filter(Boolean);
+  const t=iso(today()),h=l.hist||[],calls=h.filter(x=>!SVC.includes(x.st));
+  const last=h.slice(-1)[0],lastC=calls.slice(-1)[0],since=statusSince(l),dSince=daysBetween(since,t);
+  const lastD=lastC?daysBetween(lastC.d,t):null;
+  const tags=[...(l.theme==="custom"&&l.themeText?[l.themeText]:l.theme&&THEMES[l.theme]?[THEMES[l.theme].name]:[]),(l.closed&&l.closed.status==="Отказ банка"&&bankTagList(l).length?bankTagList(l).join(" · "):tagTok(l.tag)),l.closed?l.closed.status:stShort(l.status)[0]].filter(Boolean);
   const isN=isNew(l),wd=isN?workdays(since,t):0;
   const tag3=[...new Set(calls.map(x=>tagTok(x.tag)).filter(Boolean))].slice(0,3).join(", ");
-  const tiles=`<div class="tiles"><div class="tile"><small>Последний контакт</small><b>${last?esc(dm(last.d)):"—"}</b><em>${last?(lastD===0?"сегодня":lastD+" дн. назад"):"контактов не было"}</em></div>
+  const tiles=`<div class="tiles"><div class="tile"><small>Последний контакт</small><b>${lastC?esc(dm(lastC.d)):"—"}</b><em>${lastC?(lastD===0?"сегодня":lastD+" дн. назад"):"контактов не было"}</em></div>
     <div class="tile"><small>Звонков</small><b>${calls.length}</b><em>${esc(tag3||"—")}</em></div>
     <div class="tile"><small>В статусе</small><b>${isN?wd+" раб. дн.":dSince+" дн."}</b>${isN?`<em class="${wd>NEW_LIMIT?"warn":"ok"}">норма ${NEW_LIMIT}</em>`:`<em>&nbsp;</em>`}</div></div>`;
   const hookNow=(l.hooks||[]).filter(x=>x.d&&x.d<=t);
-  const stepBlock=l.closed?`<div class="note"><b>Итог:</b> ${esc(l.closed.reason)}<br><span class="mut">Закрыт ${ru(l.closed.date)}. ${coolOf(l)?"Добавить снова можно с "+ru(addDays(coolOf(l),l.closed.date))+".":"Вернуть в работу можно в любой момент."}${l.closed.rem?" Напоминание: "+ru(l.closed.rem)+".":""}</span></div>`:
+  const stepBlock=l.closed?`<div class="note"><b>Итог:</b> ${esc(l.closed.reason)}<br><span class="mut">Закрыт ${ru(l.closed.date)}. ${backDate(l)>iso(today())?"Добавить снова можно с "+ru(backDate(l))+".":"Вернуть в работу можно в любой момент."}${l.closed.rem?" Напоминание: "+ru(l.closed.rem)+".":""}</span></div>`:
     EDIT_STEP?`<form novalidate id="stf" class="step" style="flex-direction:column;align-items:stretch;gap:0"><div class="f" style="margin-top:0"><label for="e_w">Что делаем</label><input id="e_w" value="${esc(l.nextWhat||"")}" placeholder="Например: перезвонить ФД"></div>
       <div class="f two"><div style="flex:1"><label for="e_d">Дата</label><input id="e_d" type="date" value="${esc(l.next||"")}"></div><div style="flex:1"><label for="e_t">Время</label><input id="e_t" type="time" value="${esc(l.nextTime||"")}"></div></div>
       <div style="display:flex;gap:8px;margin-top:12px"><button class="gbtn" type="button" data-editcancel style="flex:1">Отмена</button><button class="btn" type="submit" style="flex:1;height:44px;font-size:14px">Сохранить</button></div></form>`:
@@ -815,10 +887,10 @@ function drawLead(inn){
     ${cts.map(c=>`<div class="ctb"><div class="cth"><div><b>${esc(c.fio||"Без ФИО")}</b><small>${esc(c.role)}</small></div>${l.closed?"":`<button class="lnk" type="button" data-cedit="${c.k}">Изменить</button>`}</div>
       ${c.phones.map((ph,i)=>`<div class="cr"><div><b>${esc(fmtPhone(ph))}</b></div><button class="ic" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button><a class="ic call" href="${esc(telHref(ph))}" aria-label="Позвонить">${IC.phone}</a>${l.closed?"":`<button class="x" type="button" data-cdel="${c.k}:${i}" aria-label="Убрать номер">×</button>`}</div>`).join("")||`<p class="mut pad" style="margin:0">Номера нет.</p>`}
       ${l.closed?"":`<button class="lnk" type="button" data-cadd="${c.k}" style="margin:6px 0 4px">+ номер</button>`}</div>`).join("")}`;
-  const hooks=`<div class="sec"><h3>Зацепки</h3>${l.closed?"":`<button class="lnk" type="button" data-addhook>+ Добавить</button>`}</div>
+  const feed=feedOf(l),lastN=feed[0];
+  const hooks=`<div class="sec"><h3>Заметки</h3>${l.closed?"":`<button class="lnk" type="button" data-nadd>+ Заметка</button>`}</div>
     ${hookNow.length?`<div class="petrol" style="margin-bottom:8px"><i>СПРОСИ НА ЗВОНКЕ</i>${hookNow.map(x=>`«Как прошло: ${esc(x.t.toLowerCase())}? Вы говорили об этом в прошлый раз».`).join("<br>")}</div>`:""}
-    ${(l.hooks||[]).map((x,i)=>`<div class="hk"><div class="petrol"><span><b>${esc(x.t)}</b>${x.d?` · ${esc(dm(x.d))}`:""}</span><button class="x" type="button" data-delhook="${i}" aria-label="Убрать">×</button></div></div>`).join("")||`<p class="mut pad" style="margin:0">Что клиент сказал и за что зацепиться в следующий раз.</p>`}
-    ${HOOK_F&&!l.closed?`<form novalidate id="hookf" class="f"><input id="h_t" placeholder="Новая зацепка" aria-label="Новая зацепка"><div class="f two" style="margin-top:8px"><input id="h_d" type="date" aria-label="Дата события"><button class="gbtn" type="submit" style="height:48px;flex:none">Добавить</button></div></form>`:""}`;
+    ${lastN?`<button class="nlast" type="button" data-nall><span>${esc(lastN.t)}</span><small>${esc(noteMeta(lastN))}${feed.length>1?` · ещё ${feed.length-1}`:""}</small></button>`:`<p class="mut pad" style="margin:0">Что клиент сказал, о чём договорились, за что зацепиться в следующий раз.</p>`}`;
   const hist=`<div class="sec"><h3>История</h3></div><div class="hs2">${h.slice().reverse().map(x=>`<div>${esc(x.c||x.st)}<small>${esc(ru(x.d))} · ${esc(tagTok(x.tag)||x.st)}</small></div>`).join("")||`<p class="mut pad" style="margin:0">Звонков ещё не было.</p>`}</div>`;
   main.innerHTML=`<div class="back"><button class="ib" type="button" data-back aria-label="Назад">${IC.back}</button></div>
     <h1 class="cn">${esc(l.name)}</h1><p class="sub">ИНН ${esc(l.inn)}${l.created?` · клиент с ${esc(dm(l.created))}`:""}</p>
@@ -828,9 +900,7 @@ function drawLead(inn){
     <div style="text-align:center;margin:28px 0 8px">${l.closed?"":`<button class="lnk" type="button" data-banko style="display:block;margin:0 auto 14px">Отказ банка</button>`}<button class="lnk" type="button" data-del style="color:var(--bad)">Удалить клиента</button></div>
     <div class="bar">${l.closed?`<button class="btn" type="button" data-return="${esc(l.inn)}">Вернуть в работу</button>`:`<button class="btn" type="button" data-startcall="${esc(l.inn)}">Начать звонок</button>${l.next?`<button class="rb" type="button" data-cal aria-label="В календарь">${IC.cal}</button>`:""}`}${last?`<button class="rb" type="button" data-exp aria-label="Скопировать итог">${IC.copy}</button>`:""}</div>`;
   const redo=()=>drawLead(inn);
-  main.querySelectorAll("[data-delhook]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delhook;askDel("Удалить зацепку?",(l.hooks[i]||{}).t||"",async()=>{l.hooks.splice(i,1);await save(l);redo();});});
   main.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.cdel.split(":").map(Number);const c=ctsOf(l)[k];askDel("Удалить номер?",fmtPhone(c.phones[i]||""),async()=>{const ph=c.phones.slice();ph.splice(i,1);setCt(l,k,{phones:ph});await save(l);redo();});});
-  const hf=document.getElementById("hookf");if(hf){hf.onsubmit=async e=>{e.preventDefault();const tt=document.getElementById("h_t").value.trim();if(!tt)return;l.hooks=(l.hooks||[]);l.hooks.unshift({t:tt,d:document.getElementById("h_d").value});HOOK_F=false;await save(l);redo();};document.getElementById("h_t").focus();}
   const sf=document.getElementById("stf");if(sf)sf.onsubmit=async e=>{e.preventDefault();const g=id=>document.getElementById(id).value.trim();
     l.nextWhat=g("e_w");l.next=g("e_d")||(g("e_t")?iso(today()):"");l.nextTime=g("e_t");EDIT_STEP=false;await save(l);toast("Сохранено");redo();};
   const eb=main.querySelector("[data-exp]");if(eb)eb.onclick=()=>copy(expText(l,last));
@@ -844,13 +914,58 @@ const mkCustom=(text,hook)=>({name:text,hint:"",gd:"вопросы по теме
   fact:["«Изучил вашу компанию, вижу, что "+(hook||"[факт из подготовки]")+". Как у вас сейчас устроен вопрос: "+text+"?» [слушаем]"],
   topic:"теме «"+text+"»",why:"«Понял вас. Подскажите, что для вас сейчас важнее всего по этому вопросу — чтобы я понимал, с чем к вам вернуться?»"});
 const FD_NODES=["gdfd","gotContact"];
+// ---------- Заметки: зацепки + комментарии к звонкам + свободные заметки ----------
+const noteKey=(l,x)=>x.c||x.d||l.created||"";
+function feedOf(l){const out=[];
+  (l.hooks||[]).forEach((x,i)=>out.push({kind:"ask",i,t:x.t,when:x.c||l.created||"",who:x.who||"",due:x.d||""}));
+  (l.notes||[]).forEach((x,i)=>out.push({kind:"note",i,t:x.t,when:x.c||l.created||"",who:x.who||"",due:""}));
+  (l.hist||[]).forEach(x=>{if(x.c)out.push({kind:SVC.includes(x.st)?"svc":"call",t:x.c,when:x.d||"",who:"",due:"",st:SVC.includes(x.st)?({"Занесено в Callex":"при добавлении клиента","Возврат в работу":"возврат в работу","Отказ банка":"отказ банка"})[x.st]:(tagTok(x.tag)||x.st||"")});});
+  return out.map((x,k)=>({...x,k})).sort((a,b)=>(b.when>a.when?1:b.when<a.when?-1:b.k-a.k));}
+function noteMeta(x){return [x.when?dm(x.when):"",x.kind==="call"?("звонок"+(x.st?" · "+x.st:"")):x.kind==="svc"?x.st:(x.who||""),x.kind==="ask"?("спросить"+(x.due?" до "+dm(x.due):" в след. раз")):""].filter(Boolean).join(" · ");}
+let NF="all";
+function notesSheet(_,adding){closeOv();
+  const inn=CALL?CALL.inn:CUR,l=LEADS[inn];if(!l)return;
+  const feed=feedOf(l),whos=[...new Set(feed.map(x=>x.who).filter(Boolean))];
+  const roles=[...new Set(ctsOf(l).map(c=>isGD(c.role)?"ГД":isFD(c.role)?"ФД":c.role).filter(Boolean))];
+  if(NF!=="all"&&NF!=="Звонки"&&!whos.includes(NF))NF="all";
+  const shown=feed.filter(x=>NF==="all"||(NF==="Звонки"?x.kind==="call":x.who===NF));
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Заметки</b><small>${esc(shortName(l.name))} · всего ${feed.length}</small></div></div>
+    ${adding?`<div class="f"><textarea id="nt_t" rows="3" placeholder="Что сказал клиент, о чём договорились"></textarea></div>
+      <div class="rlr" style="flex-wrap:wrap" id="nt_who"><button class="rl on" type="button" data-nwho="">Без привязки</button>${roles.map(r=>`<button class="rl" type="button" data-nwho="${esc(r)}">${esc(r)}</button>`).join("")}</div>
+      <label class="nck"><input type="checkbox" id="nt_ask"> Спросить в следующий раз</label>
+      <div class="f" id="nt_dw" hidden><label for="nt_d">К какой дате (необязательно)</label><input id="nt_d" type="date"></div>
+      <button class="btn" type="button" id="nt_go" style="margin-top:14px">Сохранить</button>
+      <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button>`
+    :`${(whos.length||feed.some(x=>x.kind==="call"))?`<div class="rlr" style="flex-wrap:wrap;margin:0 0 6px"><button class="rl${NF==="all"?" on":""}" type="button" data-nf="all">Все</button>${whos.map(w=>`<button class="rl${NF===w?" on":""}" type="button" data-nf="${esc(w)}">${esc(w)}</button>`).join("")}${feed.some(x=>x.kind==="call")?`<button class="rl${NF==="Звонки"?" on":""}" type="button" data-nf="Звонки">Звонки</button>`:""}</div>`:""}
+      <div class="nl">${shown.map(x=>`<div class="ni"><div><span>${esc(x.t)}</span><small>${esc(noteMeta(x))}</small></div>${x.kind==="call"||x.kind==="svc"?"":`<button class="x" type="button" data-ndel="${x.kind}:${x.i}" aria-label="Удалить">×</button>`}</div>`).join("")||`<p class="mut pad" style="margin:0">Пока пусто.</p>`}</div>
+      ${l.closed?"":`<button class="btn" type="button" id="nt_new" style="margin-top:14px">+ Заметка</button>`}
+      <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Закрыть</button>`}</div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  const q=s=>o.querySelector(s),redraw=()=>{if(CALL)drawCall();else drawLead(inn);};
+  o.querySelectorAll("[data-nf]").forEach(b=>b.onclick=()=>{NF=b.dataset.nf;notesSheet(null,false);});
+  if(q("#nt_new"))q("#nt_new").onclick=()=>notesSheet(null,true);
+  o.querySelectorAll("[data-ndel]").forEach(b=>b.onclick=()=>{const[kd,i]=b.dataset.ndel.split(":");const it=(kd==="ask"?l.hooks:l.notes)[+i];
+    askDel("Удалить заметку?",(it&&it.t||"").slice(0,60),async()=>{(kd==="ask"?l.hooks:l.notes).splice(+i,1);await save(l);redraw();});});
+  if(adding){let who="";q("#nt_t").focus();
+    o.querySelectorAll("[data-nwho]").forEach(b=>b.onclick=()=>{who=b.dataset.nwho;o.querySelectorAll("[data-nwho]").forEach(x=>x.classList.toggle("on",x===b));});
+    q("#nt_ask").onchange=()=>{q("#nt_dw").hidden=!q("#nt_ask").checked;};
+    q("#nt_go").onclick=async()=>{const t=q("#nt_t").value.trim();if(!t)return toast("Напиши заметку");
+      const it={t,c:iso(today()),who};
+      if(q("#nt_ask").checked){it.d=q("#nt_d").value||"";l.hooks=l.hooks||[];l.hooks.unshift(it);}else{l.notes=l.notes||[];l.notes.unshift(it);}
+      await save(l);closeOv();toast("Заметка сохранена");redraw();};}
+}
 const isGD=r=>/^(гд|ген)/i.test(r||""),isFD=r=>/^(фд|фин)/i.test(r||"");
 const ctsOf=l=>[{k:0,role:l.pos||"Генеральный директор",fio:l.fio||"",phones:phonesOf(l)}].concat((l.cs||[]).map((c,i)=>({k:i+1,role:c.role||"",fio:c.fio||"",phones:c.phones||[]})));
 function setCt(l,k,p){if(k===0){if("role"in p)l.pos=p.role;if("fio"in p)l.fio=p.fio;if("phones"in p){l.phones=p.phones;delete l.phone;}}
   else{l.cs=l.cs||[];const c=l.cs[k-1];if(c){if("role"in p)c.role=p.role;if("fio"in p)c.fio=p.fio;if("phones"in p)c.phones=p.phones;}}}
 // контакт, к которому относится текущий шаг звонка
-function ctForNode(l,id){const cs=ctsOf(l);
-  const want=["fd","gdfd","gdfdLater","gotContact"].includes(id)?isFD:id==="gd"?isGD:null;
+function ctForNode(l,hist){const cs=ctsOf(l);
+  // с кем говорим — по последнему шагу пути, где это стало ясно (ГД или ФД)
+  const MAP={gd:isGD,gdAsk:isGD,fd:isFD,gdfd:isFD,gdfdLater:isFD,gotContact:isFD};
+  // ручной выбор контакта (плашка в шапке звонка) действует, пока дальше по пути не появился шаг ГД/ФД
+  if(CALL&&hist===CALL.hist&&CALL.ct!=null&&cs[CALL.ct]&&!hist.some((h,i)=>i>=CALL.ctAt&&MAP[h.id]))return cs[CALL.ct];
+  let want=null;for(let i=hist.length-1;i>=0;i--){if(MAP[hist[i].id]){want=MAP[hist[i].id];break;}}
   return (want&&cs.find(c=>want(c.role)&&c.phones.length))||cs.find(c=>c.phones.length)||cs[0];}
 function contactSheet(k,opt){closeOv();opt=opt||{};
   const inn=CALL?CALL.inn:CUR,l=LEADS[inn];if(!l)return;
@@ -860,7 +975,7 @@ function contactSheet(k,opt){closeOv();opt=opt||{};
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>${isNew?"Новый контакт":"Контакт"}</b><small>${opt.sub?esc(opt.sub):"Должность, ФИО и номера одного человека"}</small></div></div>
     <div class="f"><label for="ct_r">Должность / роль</label><input id="ct_r" value="${esc(c.role)}" placeholder="ГД, ФД, главбух…">
       <div class="rlr">${[["ГД","Генеральный директор"],["ФД","Финансовый директор"]].map(([s,f])=>`<button class="rl" type="button" data-setrole="${f}">${s}</button>`).join("")}</div></div>
-    <div class="f"><label for="ct_n">ФИО</label><input id="ct_n" value="${esc(c.fio)}" placeholder="Иванов Иван Петрович"></div>
+    <div class="f"><label for="ct_n">ФИО</label><input id="ct_n" value="${esc(c.fio)}" placeholder="Абрамович Роман Аркадьевич"></div>
     <div class="f"><label>Телефоны</label><div id="ct_ph">${ph.map(p=>`<input class="cph" type="tel" inputmode="tel" value="${esc(p)}" placeholder="+7 ..." style="margin-bottom:8px">`).join("")}</div>
       <button class="lnk" type="button" id="ct_more">+ ещё номер</button></div>
     <button class="btn" type="button" id="ct_go" style="margin-top:14px">Сохранить</button>
@@ -882,6 +997,14 @@ function contactSheet(k,opt){closeOv();opt=opt||{};
 function askContact(){const l=LEADS[CALL.inn],cs=ctsOf(l),f=cs.find(c=>isFD(c.role));
   if(f)contactSheet(f.k,{sub:"Допиши или поправь контакт ФД",skip:"Пропустить"});
   else contactSheet(null,{role:"Финансовый директор",sub:"Запиши ФД, пока помнишь. ГД остаётся как был",skip:"Пропустить"});}
+function pickCt(){closeOv();
+  const l=LEADS[CALL.inn],cs=ctsOf(l),cur=ctForNode(l,CALL.hist);
+  const o=document.createElement("div");o.className="ov";o.id="ov";
+  o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>С кем разговор?</b><small>Номер и роль в шапке сменятся</small></div></div>
+    <div class="opts">${cs.map((c,i)=>`<button class="opt" type="button" data-pk="${i}"><span>${esc(c.role||"Контакт")}${c.fio?" · "+esc(fioShort(c.fio)):""}<small>${c.phones.length?esc(fmtPhone(c.phones[0]))+(c.phones.length>1?" и ещё "+(c.phones.length-1):""):"номера нет"}</small></span>${c.k===cur.k?`<b style="color:#ff8a00">✓</b>`:IC.chev}</button>`).join("")}</div>
+    <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
+  document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
+  o.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{CALL.ct=+b.dataset.pk;CALL.ctAt=CALL.hist.length;closeOv();drawCall();});}
 function askWho(){closeOv();
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Другой человек</b><small>Кого пробуешь и как на него выйти</small></div></div>
@@ -910,12 +1033,16 @@ function askTheme(id){closeOv();
 
 // ---------- Отказ банка (из карточки клиента) ----------
 const BANK_TAGS=[["БАНК-СБ","Служба безопасности"],["БАНК-РИСК","Риски"],["БАНК-ЮР","Юристы"],["БАНК-КОМ","Комитет / акционер"],["БАНК","Другая причина"]];
+const BSHORT={"БАНК-СБ":"СБ","БАНК-РИСК":"Риски","БАНК-ЮР":"Юристы","БАНК-КОМ":"Комитет","БАНК":"Другое"};
+const bankOrd=a=>BANK_TAGS.map(x=>x[0]).filter(x=>a.includes(x));                       // выбранные структуры банка в порядке списка
+const bankTagList=l=>bankOrd(String((l&&l.tag)||"").split(/[,\s]+/));
+const bankNames=l=>bankTagList(l).map(x=>BSHORT[x]).join(", ");
 const addMonths=n=>{const d=today();d.setMonth(d.getMonth()+n);return iso(d);};
 function openBankNo(inn){const l=LEADS[inn];if(!l||l.closed)return;closeOv();
-  let tag="",rem="",cust=false;
+  let tags=[],rem="",cust=false;
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Отказ банка</b><small>${esc(l.name)}</small></div></div>
-    <h2 class="sh">Кто отказал</h2><div class="tc" id="bk_t"></div>
+    <h2 class="sh">Кто отказал <span class="mut" style="font-weight:500;font-size:13px">· можно выбрать несколько</span></h2><div class="tc" id="bk_t"></div>
     <div class="f"><label for="bk_c">Что сообщили (обязательно)</label><input id="bk_c" placeholder="Например: СБ — не прошёл по бенефициарам"></div>
     <h2 class="sh">Напомнить о пересмотре <span class="mut" style="font-weight:500;font-size:13px">· необязательно</span></h2>
     <div class="gr" id="bk_d"></div>
@@ -925,20 +1052,20 @@ function openBankNo(inn){const l=LEADS[inn];if(!l||l.closed)return;closeOv();
     <button class="gbtn" type="button" data-ovclose style="margin-top:10px;width:100%">Отмена</button></div>`;
   document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   const paint=()=>{
-    o.querySelector("#bk_t").innerHTML=BANK_TAGS.map(([t,n])=>`<button type="button" data-bkt="${t}" class="${tag===t?"on":""}">${n}</button>`).join("");
+    o.querySelector("#bk_t").innerHTML=BANK_TAGS.map(([t,n])=>`<button type="button" data-bkt="${t}" class="${tags.includes(t)?"on":""}">${n}</button>`).join("");
     const ch=[[addMonths(1),"Через месяц"],[addMonths(3),"Через 3 мес."],[addMonths(6),"Через 6 мес."]],isC=rem&&!ch.some(x=>x[0]===rem);
     o.querySelector("#bk_d").innerHTML=ch.map(([v,t])=>`<button type="button" data-bkd="${v}" class="${rem===v?"on":""}">${t}<small>${dm(v)}</small></button>`).join("")+`<button type="button" data-bkd="custom" class="${isC||cust?"on":""}">${isC?dm(rem):"Дата…"}<small>${isC?"выбрана":"&nbsp;"}</small></button>`;
     o.querySelector("#bk_cu").hidden=!cust;};
   paint();
   o.addEventListener("click",e=>{
-    const t=e.target.closest("[data-bkt]");if(t){tag=tag===t.dataset.bkt?"":t.dataset.bkt;return paint();}
+    const t=e.target.closest("[data-bkt]");if(t){tags=bankOrd(tags.includes(t.dataset.bkt)?tags.filter(x=>x!==t.dataset.bkt):tags.concat(t.dataset.bkt));return paint();}
     const d=e.target.closest("[data-bkd]");if(d){if(d.dataset.bkd==="custom")cust=!cust;else rem=rem===d.dataset.bkd?"":d.dataset.bkd;return paint();}});
   o.querySelector("#bk_dt").addEventListener("input",e=>{rem=e.target.value;paint();});
   o.querySelector("#bk_save").onclick=async()=>{
     const c=o.querySelector("#bk_c").value.trim();
-    if(!tag)return toast("Выбери, кто отказал");
+    if(!tags.length)return toast("Выбери, кто отказал");
     if(!c)return toast("Напиши, что сообщили");
-    l.tag=tag;l.status="Отказ банка";l.closed={status:"Отказ банка",reason:c,date:iso(today()),cool:0,rem:rem||""};
+    const tag=tags.join(", ");l.tag=tag;l.status="Отказ банка";l.closed={status:"Отказ банка",reason:c,date:iso(today()),cool:0,rem:rem||""};
     l.next=rem||"";l.nextTime="";l.nextWhat="пересмотр отказа банка";
     l.hist=l.hist||[];l.hist.push({d:iso(today()),st:"Отказ банка",tag:tag,c:"Итог: "+c});
     await save(l);closeOv();toast("Клиент перенесён в архив");CUR=l.inn;draw();};
@@ -964,46 +1091,46 @@ function confirmDel(inn){const l=LEADS[inn];if(!l)return;closeOv();
   document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeOv();});}
 
 // ---------- Звонок ----------
+const hl=h=>h.replace(/\[(имя ГД|имя ФД|имя ЛПР|кто направил|Имя|имя|банк|должность)\]/g,'<mark class="ph2">[$1]</mark>');
 function lineHtml(x){
-  if(x&&typeof x==="object"&&x.own)return `<p class="own">${esc(sub(x.own))}</p>`;
+  if(x&&typeof x==="object"&&x.own)return `<p class="own">${hl(esc(sub(x.own)))}</p>`;
   const s=R(x);if(!s)return "";
-  if(s.startsWith("адаптация:"))return `<p class="own">${esc(sub(s.slice(10)))}</p>`;
-  return `<p>${esc(sub(s))}</p>`;}
+  if(s.startsWith("адаптация:"))return `<p class="own">${hl(esc(sub(s.slice(10))))}</p>`;
+  return `<p>${hl(esc(sub(s)))}</p>`;}
 const sayH=(arr,title)=>arr&&arr.length?`<div class="say"><i>${title}</i>${arr.map(lineHtml).join("")}</div>`:"";
 const optH=(t,nx,subt,th,cls)=>`<button class="opt ${cls||""}" type="button" data-next="${nx}"${th?` data-theme="${th}"`:""}><span>${esc(t)}${subt?`<small>${esc(subt)}</small>`:""}</span>${IC.chev}</button>`;
 function drawCall(){clearInterval(TM);
   const l=LEADS[CALL.inn],cur=CALL.hist[CALL.hist.length-1];theme=cur.theme;if(theme==="custom"&&!THEMES.custom)THEMES.custom=mkCustom(CALL.tt||l.themeText||"другая тема",CALL.hk||"");const n=N[cur.id];
   if(n.end)return drawEnd(l,cur,n);
-  const th=theme&&THEMES[theme]?THEMES[theme].name:"",ct=ctForNode(l,cur.id),ph=ct.phones[0],hook=(l.hooks||[])[0];
+  const th=theme&&THEMES[theme]?THEMES[theme].name:"",ct=ctForNode(l,CALL.hist),ph=ct.phones[0],hook=(l.hooks||[])[0];
   const isTh=cur.id==="themeA"||cur.id==="themeB";const opts=cur.id==="start"?n.opts:n.opts.concat([isTh?["Другая тема","@custom","своя тема и зацепка"]:cur.id==="exits"?["Другой человек","@who","кто это и как на него выйти"]:["Другое","other"]]);
-  main.innerHTML=`<div class="ch"><button class="ib" type="button" data-callclose aria-label="Закрыть">${IC.x}</button><div class="ct">${esc(shortName(l.name))}${th?" · "+esc(th):""}</div><div class="tm" id="tm">00:00</div></div>
-    <div class="pl"><div class="num">${ph?`${esc(fmtPhone(ph))}<span class="rl on" style="pointer-events:none">${esc(isGD(ct.role)?"ГД":isFD(ct.role)?"ФД":ct.role)}</span><button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:`<span class="mut" style="font-size:15px">номера нет</span>`}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
+  main.innerHTML=`<div class="ch"><button class="ib" type="button" data-callclose aria-label="Закрыть">${IC.x}</button><div class="ct">${esc(shortName(l.name))}${th?" · "+esc(th):""}</div><span style="width:42px"></span></div>
+    <div class="pl"><div class="num">${ph?esc(fmtPhone(ph)):`<span class="mut" style="font-size:15px">номера нет</span>`}${ctsOf(l).length>1?`<button class="rl on" type="button" data-pickct aria-label="Выбрать контакт">${esc(isGD(ct.role)?"ГД":isFD(ct.role)?"ФД":ct.role||"Контакт")} ▾</button>`:ph?`<span class="rl on" style="pointer-events:none">${esc(isGD(ct.role)?"ГД":isFD(ct.role)?"ФД":ct.role)}</span>`:""}${ph?`<button class="ib" style="width:32px;height:32px" type="button" data-copy="${esc(ph)}" aria-label="Копировать">${IC.copy}</button>`:""}</div>${hook?`<span class="hkb">${esc(hook.t)}</span>`:""}</div>
     <div class="prog">${Array.from({length:5},(_,i)=>`<i class="${i<Math.min(CALL.hist.length,5)?"on":""}"></i>`).join("")}</div>
     <div class="path">${CALL.hist.map(h=>esc(N[h.id].label)).join(" › ")}</div>
     <p class="q">${esc(n.q)}</p>${sayH(n.say,"Скажи")}
     <div class="opts">${opts.map(([t,nx,subt,thm])=>optH(t,nx,subt,thm)).join("")}</div>
     ${cur.id==="gdfd"?`<button class="gbtn" type="button" data-fdadd style="margin-top:12px;width:100%">+ Записать ФИО и номер ФД</button>`:""}
     <div class="cf"><button type="button" data-callback>${IC.back}${CALL.hist.length>1?"Шаг назад":"К карточке"}</button>${cur.id!=="start"?`<button type="button" data-next="other" style="color:#fff">Записать итог</button>`:""}</div>`;
-  const tm=document.getElementById("tm"),tick=()=>{const s=Math.floor((Date.now()-CALL.t0)/1000);tm.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");};
-  tick();TM=setInterval(tick,1000);window.scrollTo(0,0);
+  window.scrollTo(0,0);
 }
 const TAGHELP={"БАНК-СБ":"Отказ банка: служба безопасности. Запиши, что сообщили.","БАНК-РИСК":"Отказ банка: риски. Запиши, что сообщили.","БАНК-ЮР":"Отказ банка: юристы. Запиши, что сообщили.","БАНК-КОМ":"Отказ банка: кредитный комитет или акционер.","БАНК":"Отказ банка по другой причине. Запиши, что сообщили.","НД-1":"Недозвон, 1-я попытка. Дальше повтор через 1–2 дня в другое время.","НД-2":"Недозвон, 2-я попытка.","НД-3":"Третий недозвон: «Уточнить контакт», не ХОЛД.","ГД-ФД":"Генеральный направил к финансовому. Запиши ФИО и контакт ФД.","ЛПР":"Состоялся разговор с принимающим решение.","ПУЛ":"Отказ: пул банков определён. Перезвон через 14 дней.","НЕТ":"Отказ: нет потребности. Перезвон через 14 дней.","УСЛ":"Отказ: не устроили условия — ставка, срок, обеспечение.","КОНК":"Отказ: выбрали конкурента. Укажи, какого.","СБРОС":"Бросили трубку. Перезвон через 14 дней другим заходом.","ХОЛД":"Клиент подходит, но не сейчас: причина и дата возврата, не больше 90 дней."};
 function hourLater(){const d=new Date(Date.now()+3600000),m=Math.ceil(d.getMinutes()/5)*5;if(m===60){d.setHours(d.getHours()+1);d.setMinutes(0);}else d.setMinutes(m);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
 function drawEnd(l,cur,n){
-  const e=n.end,closing=CLOSE[cur.id],due=DUE[cur.id],mins=Math.max(1,Math.round((Date.now()-CALL.t0)/60000));
-  const defTag=tagTok(e.tag),refuse=["ПУЛ","НЕТ","УСЛ","КОНК","СБРОС"],bank=closing==="Отказ банка";
-  const tags=[...new Set([defTag,...(closing?(bank?BANK_TAGS.map(x=>x[0]):refuse):["НД-1","ГД-ФД","ЛПР","ХОЛД"])].filter(Boolean))];
+  const e=n.end,closing=CLOSE[cur.id],due=DUE[cur.id];
+  const defTag=closing==="Передан в сделку (КП)"?"КП":tagTok(e.tag),refuse=["ПУЛ","НЕТ","УСЛ","КОНК","СБРОС"],bank=closing==="Отказ банка",kp=closing==="Передан в сделку (КП)",nc=bank||kp;
+  const tags=[...new Set([defTag,...(closing?(bank?BANK_TAGS.map(x=>x[0]):kp?[]:refuse):["НД-1","ГД-ФД","ЛПР","ХОЛД"])].filter(Boolean))];
   main.innerHTML=`<div class="back"><button class="ib" type="button" data-callback aria-label="Назад">${IC.back}</button><b style="font:600 16px Inter,sans-serif">Итог звонка</b><span style="width:42px"></span></div>
-    <p class="sub" style="margin-top:8px">${esc(shortName(l.name))} · ${mins} мин</p>
+    <p class="sub" style="margin-top:8px">${esc(shortName(l.name))}</p>
     <h1 class="t" style="margin-top:4px">${esc(closing||e.status)}</h1>
-    <div class="tc" id="tagc"></div><div class="petrol" id="taghelp" style="margin-top:10px" hidden></div>
+    ${bank?`<p class="sub" style="margin:8px 0 4px">Кто отказал — можно выбрать несколько</p>`:""}<div class="tc" id="tagc"></div><div class="petrol" id="taghelp" style="margin-top:10px" hidden></div>
     ${sayH(e.say,"Что сказать / написать")}${e.note?`<p class="sub" style="margin-top:8px">${esc(e.note)}</p>`:""}
     <form novalidate id="savef">
       <input type="hidden" id="s_tag" value="${esc(defTag)}">
-      ${closing?`<div class="f"><label for="s_reason">Итог по клиенту (обязательно)</label><input id="s_reason" required placeholder="${bank?"Например: СБ — не прошёл по бенефициарам":"Например: КОНК — работают со Сбером, всё устраивает"}"></div><p class="sub" style="margin-top:6px">${bank?"Клиент уйдёт в архив. Вернуть в работу можно в любой момент.":"Клиент уйдёт в архив. Добавить снова можно через "+COOLDOWN_DAYS+" дней."}</p>`:""}
-      <h2 class="sh">${bank?"Напомнить о пересмотре":closing?"Дата перезвона":"Когда следующий шаг"} <span class="mut" style="font-weight:500;font-size:13px">${closing&&!bank?"":"· необязательно"}</span></h2>
+      ${closing?`<div class="f"><label for="s_reason">${kp?"Что передано (обязательно)":"Итог по клиенту (обязательно)"}</label><input id="s_reason" required placeholder="${bank?"Например: СБ — не прошёл по бенефициарам":kp?"Например: КП на овердрафт, документы у аналитика":"Например: КОНК — работают со Сбером, всё устраивает"}"></div><p class="sub" style="margin-top:6px">${nc?"Клиент уйдёт в архив. Вернуть в работу можно в любой момент.":"Клиент уйдёт в архив. Добавить снова можно через "+daysRu(COOLDOWN_DAYS)+"."}</p>`:""}
+      <h2 class="sh">${bank?"Напомнить о пересмотре":kp?"Напомнить проверить сделку":closing?"Когда вернуться к клиенту":"Когда следующий шаг"} <span class="mut" style="font-weight:500;font-size:13px">${closing&&!nc?"":"· необязательно"}</span></h2>
       <div class="gr" id="datec"></div><div class="gr" id="timec"></div>
-      <div class="f two" id="cust" style="margin-top:8px" hidden><div id="cdw" style="flex:1"><input id="s_next" type="date" value="${due!=null?addDays(due):""}" aria-label="Дата"></div><div id="ctw" style="flex:1"><input id="s_nt" type="time" aria-label="Время"></div></div>
+      <div class="f two" id="cust" style="margin-top:8px" hidden><div id="cdw" style="flex:1"><input id="s_next" type="date" value="${due!=null?workDay(addDays(due)):""}" aria-label="Дата"></div><div id="ctw" style="flex:1"><input id="s_nt" type="time" aria-label="Время"></div></div>
       <h2 class="sh">Комментарий</h2>
       <div class="f" style="margin-top:0"><textarea id="s_c" rows="3" placeholder="Как для коллеги: кто, что сказал, о чём договорились">${CALL.who?esc("Пробовал: "+CALL.who+". "):""}</textarea></div>
       <h2 class="sh">Зацепка на следующий раз</h2>
@@ -1014,14 +1141,14 @@ function drawEnd(l,cur,n){
   const g=id=>(document.getElementById(id)||{}).value||"";
   let CUSTD=false,CUSTT=false;
   const draw2=()=>{
-    const tg=g("s_tag"),dn=g("s_next"),tn=g("s_nt"),t0=iso(today()),t1=addDays(1);
+    const tg=g("s_tag"),dn=g("s_next"),tn=g("s_nt"),t0=iso(today()),t1r=addDays(1),t1=workDay(t1r),cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
     let mon=1;for(;mon<9;mon++){const d=new Date(t0+"T00:00:00");d.setDate(d.getDate()+mon);if(mon>=2&&d.getDay()===1)break;}
-    const t3=addDays(mon),hl=hourLater(),quick=[t0,t1,t3];
-    document.getElementById("tagc").innerHTML=tags.map(x=>`<button type="button" data-et="${esc(x)}" class="${tg===x?"on":""}">${esc(x)}</button>`).join("")+`<button type="button" class="q2" data-cheat aria-label="Шпаргалка">?</button>`;
-    const hp=document.getElementById("taghelp"),tx=TAGHELP[tg];hp.hidden=!tx;if(tx)hp.innerHTML=`<b>${esc(tg)}</b> — ${esc(tx)}`;
+    let t3=workDay(addDays(mon));if(t3===t1)t3=workDay(addDays(7));const hl=hourLater(),quick=[t0,t1,t3];
+    document.getElementById("tagc").innerHTML=tags.map(x=>`<button type="button" data-et="${esc(x)}" class="${(bank?tg.split(", ").includes(x):tg===x)?"on":""}">${esc(x)}</button>`).join("")+`<button type="button" class="q2" data-cheat aria-label="Шпаргалка">?</button>`;
+    const hp=document.getElementById("taghelp"),sel=bank?tg.split(", ").filter(Boolean):[tg],hh=sel.filter(x=>TAGHELP[x]).map(x=>`<b>${esc(x)}</b> — ${esc(TAGHELP[x])}`).join("<br>");hp.hidden=!hh;if(hh)hp.innerHTML=hh;
     const cd=(v,a,b)=>`<button type="button" data-ed="${v}" class="${dn===v?"on":""}">${a}<small>${b}</small></button>`;
     const isCustom=dn&&!quick.includes(dn);
-    document.getElementById("datec").innerHTML=cd(t0,"Сегодня",wdOf(t0))+cd(t1,"Завтра",wdOf(t1)+" "+dm(t1))+cd(t3,wdOf(t3).charAt(0).toUpperCase()+wdOf(t3).slice(1),dm(t3))+
+    document.getElementById("datec").innerHTML=cd(t0,"Сегодня",wdOf(t0))+(t1===t1r?cd(t1,"Завтра",wdOf(t1)+" "+dm(t1)):cd(t1,cap(wdOf(t1)),dm(t1)))+cd(t3,wdOf(t3).charAt(0).toUpperCase()+wdOf(t3).slice(1),dm(t3))+
       `<button type="button" data-ed="custom" class="${isCustom||CUSTD?"on":""}">${isCustom?esc(dm(dn)):"Дата…"}<small>${isCustom?"выбрана":"&nbsp;"}</small></button>`;
     const times=["11:00","15:00"],isC=tn&&tn!==hl&&!times.includes(tn);
     document.getElementById("timec").innerHTML=`<button type="button" data-etm="${hl}" class="${tn===hl?"on":""}">Через час<small>${hl}</small></button>`+times.map(x=>`<button type="button" data-etm="${x}" class="${tn===x?"on":""}">${x}<small>&nbsp;</small></button>`).join("")+
@@ -1029,16 +1156,20 @@ function drawEnd(l,cur,n){
     document.getElementById("cust").hidden=!(CUSTD||CUSTT);document.getElementById("cdw").hidden=!CUSTD;document.getElementById("ctw").hidden=!CUSTT;
     const eff=dn||(tn?t0:"");
     document.getElementById("savebtn").textContent="Сохранить"+(eff?" · "+wdOf(eff)+" "+dm(eff)+(tn?", "+tn:""):"");
-    if(bank){const m=n=>{const d=today();d.setMonth(d.getMonth()+n);return iso(d);};const ch=[[m(1),"Через месяц"],[m(3),"Через 3 мес."],[m(6),"Через 6 мес."]];const cu=dn&&!ch.some(x=>x[0]===dn);
+    if(nc){const m=n=>{const d=today();d.setMonth(d.getMonth()+n);return workDay(iso(d));};const ch=bank?[[m(1),"Через месяц"],[m(3),"Через 3 мес."],[m(6),"Через 6 мес."]]:[[workDay(addDays(3)),"Через 3 дня"],[workDay(addDays(7)),"Через неделю"],[m(1),"Через месяц"]];const cu=dn&&!ch.some(x=>x[0]===dn);
       document.getElementById("datec").innerHTML=ch.map(([v,t])=>`<button type="button" data-ed="${v}" class="${dn===v?"on":""}">${t}<small>${dm(v)}</small></button>`).join("")+`<button type="button" data-ed="custom" class="${cu||CUSTD?"on":""}">${cu?dm(dn):"Дата…"}<small>${cu?"выбрана":"&nbsp;"}</small></button>`;
       document.getElementById("timec").innerHTML="";
       document.getElementById("savebtn").textContent=dn?"В архив · напомню "+dm(dn):"Перенести в архив";}
+    else if(closing){const mo=n=>{const d=today();d.setMonth(d.getMonth()+n);return workDay(iso(d));};const c0=[[workDay(addDays(COOLDOWN_DAYS)),"Через "+daysRu(COOLDOWN_DAYS)],[mo(1),"Через месяц"],[mo(3),"Через квартал"]];const ch=c0.filter((x,i)=>c0.findIndex(y=>y[0]===x[0])===i);const cu=dn&&!ch.some(x=>x[0]===dn);
+      document.getElementById("datec").innerHTML=ch.map(([v,t])=>`<button type="button" data-ed="${v}" class="${dn===v?"on":""}">${t}<small>${dm(v)}</small></button>`).join("")+`<button type="button" data-ed="custom" class="${cu||CUSTD?"on":""}">${cu?dm(dn):"Дата…"}<small>${cu?"выбрана":"&nbsp;"}</small></button>`;
+      document.getElementById("timec").innerHTML="";
+      document.getElementById("savebtn").textContent=dn?"В архив · вернусь "+dm(dn):"В архив · через "+daysRu(COOLDOWN_DAYS);}
   };
   draw2();
   const form=document.getElementById("savef");
   const onSel=ev=>{
     const a=ev.target.closest("[data-et],[data-ed],[data-etm]");if(!a)return;
-    if(a.dataset.et!==undefined){const s=document.getElementById("s_tag");s.value=s.value===a.dataset.et?"":a.dataset.et;}
+    if(a.dataset.et!==undefined){const s=document.getElementById("s_tag");if(bank){const cur=s.value.split(", ").filter(Boolean);s.value=bankOrd(cur.includes(a.dataset.et)?cur.filter(x=>x!==a.dataset.et):cur.concat(a.dataset.et)).join(", ");}else s.value=s.value===a.dataset.et?"":a.dataset.et;}
     else if(a.dataset.ed!==undefined){const s=document.getElementById("s_next");if(a.dataset.ed==="custom"){CUSTD=!CUSTD;}else s.value=s.value===a.dataset.ed?"":a.dataset.ed;}
     else {const s=document.getElementById("s_nt");if(a.dataset.etm==="custom"){CUSTT=!CUSTT;}else s.value=s.value===a.dataset.etm?"":a.dataset.etm;}
     draw2();};
@@ -1046,12 +1177,12 @@ function drawEnd(l,cur,n){
   document.getElementById("s_next").addEventListener("input",draw2);document.getElementById("s_nt").addEventListener("input",draw2);
   form.onsubmit=async ev=>{ev.preventDefault();
     const gv=id=>((document.getElementById(id)||{}).value||"").trim();
-    l.theme=theme||l.theme;if(theme==="custom"){if(CALL.tt)l.themeText=CALL.tt;if(CALL.hk){l.hooks=l.hooks||[];l.hooks.unshift({t:CALL.hk,d:""});CALL.hk="";}}l.tag=gv("s_tag");l.status=closing||e.status;
+    l.theme=theme||l.theme;if(theme==="custom"){if(CALL.tt)l.themeText=CALL.tt;if(CALL.hk){l.hooks=l.hooks||[];l.hooks.unshift({t:CALL.hk,d:"",c:iso(today())});CALL.hk="";}}const keep=cur.id==="other",hold=(cur.id==="nd12"||cur.id==="nd3")&&ADV_ST.includes(l.status);if(!(keep&&!gv("s_tag")))l.tag=gv("s_tag");l.status=closing||(hold?l.status:keep?(l.status==="Новый клиент"?"Сделать холодный звонок":l.status):e.status);
     const entry={d:iso(today()),st:l.status,tag:l.tag,c:gv("s_c")};
-    if(gv("s_hook")){l.hooks=l.hooks||[];l.hooks.unshift({t:gv("s_hook"),d:""});}
-    if(closing){if(!gv("s_reason"))return toast("Заполни итог по клиенту");
-      l.closed={status:closing,reason:gv("s_reason"),date:iso(today())};if(bank){l.closed.cool=0;l.closed.rem=gv("s_next")||"";}entry.c=(entry.c?entry.c+" · ":"")+"Итог: "+gv("s_reason");
-      l.next=gv("s_next")||(bank?"":addDays(COOLDOWN_DAYS));l.nextTime=bank?"":gv("s_nt");l.nextWhat=bank?"пересмотр отказа банка":"перезвон после закрытия";}
+    if(gv("s_hook")){l.hooks=l.hooks||[];l.hooks.unshift({t:gv("s_hook"),d:"",c:iso(today())});}
+    if(closing){if(!gv("s_reason"))return toast("Заполни итог по клиенту");if(bank&&!gv("s_tag"))return toast("Выбери, кто отказал");
+      l.closed={status:closing,reason:gv("s_reason"),date:iso(today())};if(nc){l.closed.cool=0;l.closed.rem=gv("s_next")||"";}else l.closed.rem=gv("s_next")||workDay(addDays(COOLDOWN_DAYS));entry.c=(entry.c?entry.c+" · ":"")+"Итог: "+gv("s_reason");
+      l.next=gv("s_next")||(nc?"":workDay(addDays(COOLDOWN_DAYS)));l.nextTime=nc?"":gv("s_nt");l.nextWhat=bank?"пересмотр отказа банка":kp?"проверить статус КП":"перезвон после закрытия";}
     else{l.next=gv("s_next")||(gv("s_nt")?iso(today()):"");l.nextTime=gv("s_nt");l.nextWhat=e.next;
       if(l.tag==="ХОЛД"&&l.next){l.tag="ХОЛД до "+dm(l.next);entry.tag=l.tag;}}
     l.hist=l.hist||[];l.hist.push(entry);await save(l);
@@ -1064,15 +1195,16 @@ function closeOv(){const o=document.getElementById("ov");if(o)o.remove();}
 function openProfile(){closeOv();
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><span class="avb">${esc(initial())}</span><div><b>Профиль</b><small>Подставляется в фразы звонка</small></div></div>
-    <div class="f"><label for="pf_n">Имя</label><input id="pf_n" value="${esc(PROFILE.name||TGNAME)}" placeholder="Например: Георгий"></div>
+    <div class="f"><label for="pf_n">Имя и фамилия</label><input id="pf_n" value="${esc(PROFILE.name||TGNAME)}" placeholder="Например: Георгий Мкртчян"></div>
     <div class="f"><label for="pf_b">Банк</label><input id="pf_b" value="${esc(PROFILE.bank)}" placeholder="Не заполнено — в фразах будет [банк]"></div>
     <div class="f"><label for="pf_p">Должность</label><input id="pf_p" value="${esc(PROFILE.pos)}" placeholder="Не заполнено — в фразах будет [должность]"></div>
+    <div class="f"><label for="pf_c">Пауза после отказа клиента, дней</label><input id="pf_c" type="number" inputmode="numeric" min="1" max="365" value="${esc(PROFILE.cool||14)}"><small class="mut" style="display:block;margin-top:6px">Через сколько дней можно возвращаться к клиенту, который отказал. По умолчанию 14.</small></div>
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 25</p></div>`;
+    <p class="demo">версия 38</p></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
-  document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
+  document.getElementById("pf_s").onclick=async()=>{PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.cool=Math.max(1,Math.min(365,parseInt(document.getElementById("pf_c").value,10)||14));applyCool();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
 }
 const CHEAT_TAGS=[["НД-1/2/3","m","Недозвон, номер попытки","3 попытки за 10 раб. дней, потом «Уточнить контакт»"],["ГД-ФД","o","ГД направил к финансовому","Запиши ФИО и контакт ФД; звони в тот же или следующий день"],["ЛПР","g","Разговор с принимающим решение","ФД, собственник или ГД"],["ПУЛ","r","Отказ: пул банков определён","Перезвон через 14 дней другим заходом"],["НЕТ","r","Отказ: нет потребности","Перезвон через 14 дней"],["УСЛ","r","Отказ: не устроили условия","Ставка, срок, обеспечение"],["КОНК","r","Отказ: выбрали конкурента","Укажи, какой банк"],["СБРОС","r","Бросили трубку","Перезвон через 14 дней другим заходом"],["ХОЛД","m","Подходит, но не сейчас","Причина и дата возврата, до 90 дней"],["БАНК-*","r","Отказ банка: СБ, риски, юристы, комитет","Клиент в архиве; напоминание по желанию"]];
 const CHEAT_MAP=[["Не взяли трубку","Сделать холодный звонок · НД-1/2/3","Повтор через 1–2 дня в другое время"],["ГД направил к финансовому","Сделать холодный звонок · ГД-ФД","Звонок ФД в тот же или следующий день"],["ГД не направил, контакта нет","Уточнить контакт","Цепочка альтернативных контактов, 7 дней"],["Клиент назвал время","Назначен 2-й звонок","Событие в календаре, подготовка"],["Согласились на видео","Назначена видео-встреча","Цель — очная встреча"],["Согласились на встречу","Назначена встреча","Чек-лист подготовки, подтверждение за день"],["«Пул банков определён»","Отказ · ПУЛ","Другой заход через 14 дней"],["«Не сейчас, через квартал»","ХОЛД","Причина и дата возврата"],["Бросили трубку","Отказ · СБРОС","Перезвон через 14 дней"],["Не подходит под критерии","Не целевой","Конкретная причина"],["Банк отказал клиенту","Отказ банка · БАНК-СБ/РИСК/ЮР/КОМ","Архив; напоминание о пересмотре по желанию"]];
@@ -1089,13 +1221,15 @@ function openCheat(tab){closeOv();tab=tab||"tags";
 // ---------- Добавить клиента ----------
 let ADDMODE="one",IMP=null;
 const addSeg=()=>`<div class="head"><button class="ib" type="button" data-addclose aria-label="Закрыть">${IC.x}</button><div class="seg" style="margin:0 auto"><button type="button" data-addmode="one" class="${ADDMODE==="one"?"on":""}">Один клиент</button><button type="button" data-addmode="list" class="${ADDMODE==="list"?"on":""}">Список из Excel</button></div><span style="width:42px"></span></div>`;
+function addErr(html){const box=document.getElementById("adderr");if(!box)return drawAdd(html);
+  box.innerHTML=`<div class="err">${html}</div>`;toast(html.replace(/<[^>]+>/g,""));box.scrollIntoView({block:"center",behavior:"smooth"});}
 function drawAdd(msg){
   if(ADDMODE==="list")return drawImport();
   main.innerHTML=addSeg()+`<h1 class="t">Новый клиент</h1><p class="sub">Статус «Новый клиент». Достаточно названия и ИНН.</p>
     <form novalidate id="addf">
       <div class="f"><label for="f_name">Компания</label><input id="f_name" required placeholder="ООО «Пример»"></div>
       <div class="f"><label for="f_inn">ИНН</label><input id="f_inn" inputmode="numeric" required pattern="\\d{10}|\\d{12}" placeholder="10 или 12 цифр"></div>
-      <div class="f"><label for="f_fio">ФИО</label><input id="f_fio" placeholder="Иванов Иван Петрович"></div>
+      <div class="f"><label for="f_fio">ФИО</label><input id="f_fio" placeholder="Абрамович Роман Аркадьевич"></div>
       <div class="f"><label for="f_pos">Должность</label><input id="f_pos" placeholder="Генеральный директор"></div>
       <div class="f"><label>Телефоны</label><div id="phs"><input class="ph" inputmode="tel" placeholder="8 900 000-00-00" aria-label="Телефон"></div></div>
       <button class="lnk" type="button" id="addph" style="margin-top:8px">+ ещё телефон</button>
@@ -1106,7 +1240,7 @@ function drawAdd(msg){
         <div class="f two"><div style="flex:1"><label for="f_nd">Дата</label><input id="f_nd" type="date"></div><div style="flex:1"><label for="f_nt">Время звонка</label><input id="f_nt" type="time"></div></div>
         <div class="f"><label for="f_hc">Что уже было</label><textarea id="f_hc" rows="3" placeholder="Кто, что сказал, о чём договорились"></textarea></div>
       </details>
-      ${msg?`<div class="err">${msg}</div>`:""}
+      <div id="adderr">${msg?`<div class="err">${msg}</div>`:""}</div>
       <div class="bar"><button class="btn" type="submit">Добавить клиента</button></div>
     </form>`;
   document.getElementById("addph").onclick=()=>{
@@ -1116,22 +1250,22 @@ function drawAdd(msg){
     r.innerHTML=`<input class="ph" inputmode="tel" placeholder="Ещё номер" aria-label="Телефон"><button class="xph" type="button" aria-label="Убрать поле">${IC.x}</button>`;
     r.querySelector(".xph").onclick=()=>r.remove();
     document.getElementById("phs").appendChild(r);r.querySelector(".ph").focus();};
-  document.getElementById("addf").addEventListener("submit",async e=>{e.preventDefault();
+  document.getElementById("addf").addEventListener("submit",async e=>{e.preventDefault();try{
     const v=id=>document.getElementById(id).value.trim();
     const inn=v("f_inn").replace(/\D/g,"");
-    if(!v("f_name"))return drawAdd("Укажи название компании.");
-    if(!/^(\d{10}|\d{12})$/.test(inn))return drawAdd("ИНН — 10 цифр для компании или 12 для ИП.");
+    if(!v("f_name"))return addErr("Укажи название компании.");
+    if(!/^(\d{10}|\d{12})$/.test(inn))return addErr("ИНН — 10 цифр для компании или 12 для ИП.");
     const ex=LEADS[inn];
-    if(ex&&!ex.closed)return drawAdd(`Клиент уже в работе: <b>${esc(ex.name)}</b>. Открой его во вкладке «Клиенты».`);
-    if(ex&&ex.closed){const back=addDays(coolOf(ex),ex.closed.date);
-      if(iso(today())<back)return drawAdd(`Клиент <b>${esc(ex.name)}</b> закрыт ${ru(ex.closed.date)} («${esc(ex.closed.reason)}»). Добавить снова можно с ${ru(back)}.`);}
+    if(ex&&!ex.closed)return addErr(`Клиент уже в работе: <b>${esc(ex.name)}</b>. Открой его во вкладке «Клиенты».`);
+    if(ex&&ex.closed){const back=backDate(ex);
+      if(iso(today())<back)return addErr(`Клиент <b>${esc(ex.name)}</b> закрыт ${ru(ex.closed.date)} («${esc(ex.closed.reason)}»). Добавить снова можно с ${ru(back)}.`);}
     const l=ex||{inn,created:iso(today()),hist:[]};
     Object.assign(l,{name:v("f_name"),fio:v("f_fio"),pos:v("f_pos"),phones:[...document.querySelectorAll(".ph")].map(i=>i.value.trim()).filter(Boolean),phone:undefined,status:v("f_st")==="Новый"?"Новый клиент":v("f_st"),tag:"",next:v("f_nd")||(v("f_nt")?iso(today()):""),nextWhat:v("f_nw"),nextTime:v("f_nt"),closed:null});
-    l.hooks=v("f_hook")?[{t:v("f_hook"),d:""}]:(l.hooks||[]);
+    l.hooks=v("f_hook")?[{t:v("f_hook"),d:"",c:iso(today())}]:(l.hooks||[]);
     if(v("f_hc"))l.hist.push({d:iso(today()),st:"Занесено в Callex",c:v("f_hc")});
     if(ex)l.hist.push({d:iso(today()),st:"Возврат в работу",c:`после закрытия ${ru(ex.closed.date)}: ${ex.closed.reason}`});
     if(typeof l.ord!=="number")l.ord=Date.now()*1000;
-    await save(l);toast("Клиент добавлен");CUR=inn;TAB="leads";draw();});
+    await save(l);toast("Клиент добавлен");CUR=inn;TAB="leads";draw();}catch(err){addErr("Не удалось сохранить: "+esc(String(err&&err.message||err)));}});
 }
 function drawImport(){
   const p=IMP,res=p&&p.res;
@@ -1171,7 +1305,7 @@ function drawImport(){
 function drawWelcome(){
   const prev=()=>{const n=document.getElementById("w_n").value.trim()||"[Имя]",p=document.getElementById("w_p").value.trim()||"[должность]",b=document.getElementById("w_b").value.trim()||"[банк]";return `«${esc(n)}, ${esc(p)}, ${esc(b)}. У вас есть две минуты?»`;};
   main.innerHTML=`<div class="wl"><h1>Call<span>ex</span></h1><h2>Привет! Пара слов о тебе</h2><p class="sub">Эти данные подставятся в готовые фразы для звонка. Можно пропустить и заполнить позже — тогда в фразах останутся [Имя], [банк], [должность].</p>
-   <div class="f"><label for="w_n">Имя</label><input id="w_n" value="${esc(PROFILE.name||TGNAME)}" placeholder="Например: Георгий"></div>
+   <div class="f"><label for="w_n">Имя и фамилия</label><input id="w_n" value="${esc(PROFILE.name||TGNAME)}" placeholder="Например: Георгий Мкртчян"></div>
    <div class="f"><label for="w_b">Банк</label><input id="w_b" value="${esc(PROFILE.bank)}" placeholder="Например: банк, где работаешь"></div>
    <div class="f"><label for="w_p">Должность</label><input id="w_p" value="${esc(PROFILE.pos)}" placeholder="Например: клиентский менеджер"></div>
    <div class="petrol" style="margin-top:16px"><i>ТАК ПРОЗВУЧИТ</i><span id="w_pv"></span></div></div>
@@ -1186,7 +1320,7 @@ function drawWelcome(){
 function pickList(q){const d=todayData(),seen=new Set(),out=[];
   [d.up,...d.todayL,...d.over,...d.nw,...d.nod,...d.soon,...d.act].forEach(l=>{if(l&&!seen.has(l.inn)){seen.add(l.inn);out.push(l);}});
   q=(q||"").trim().toLowerCase();
-  const r=q?out.filter(l=>(l.name+" "+l.inn+" "+(l.fio||"")).toLowerCase().includes(q)):out;
+  const r=q?out.filter(l=>matchQ(l,q)):out;
   return {r:r.slice(0,40),all:r.length};}
 function pickRows(q){const {r,all}=pickList(q),t=iso(today());
   return (r.map(l=>`<button class="opt" type="button" data-startcall="${esc(l.inn)}"><span>${esc(shortName(l.name))}<small>${esc([isNew(l)?"новый":(l.next?(l.next<t?"просрочен · ":"")+whenTxt(l):"без даты"),fioShort(l.fio)].filter(Boolean).join(" · "))}</small></span>${IC.chev}</button>`).join("")||`<p class="mut pad">Никого не нашли.</p>`)+(all>r.length?`<p class="mut pad">Показаны первые ${r.length} из ${all}. Уточни поиск.</p>`:"");}
@@ -1199,7 +1333,7 @@ function startNext(){closeOv();
   const o=document.createElement("div");o.className="ov";o.id="ov";
   o.innerHTML=`<div class="sheet"><div class="hd"></div><div class="ph"><div><b>Кому звоним?</b><small>Выбери клиента или добавь нового</small></div></div>
     <button class="btn" type="button" data-picknew style="margin:14px 0 10px">+ Новый клиент</button>
-    <div class="search">${IC.search}<input id="pk_q" placeholder="Компания, ИНН или ФИО" aria-label="Поиск"></div>
+    <div class="search">${IC.search}<input id="pk_q" placeholder="Компания, ИНН, ФИО или телефон" aria-label="Поиск"></div>
     <div class="opts" id="pk_l" style="margin-top:10px">${pickRows("")}</div></div>`;
   document.body.appendChild(o);
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
@@ -1209,7 +1343,7 @@ function draw(){
   clearInterval(TM);closeOv();
   const welcome=!PROFILE.done&&!CALL&&!CUR;
   document.body.classList.toggle("deep",!!(CUR||CALL||TAB==="add"||welcome||SEL));
-  document.querySelectorAll(".tab[data-tab]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.tab===TAB&&!CALL&&!CUR)));
+  document.querySelectorAll(".tab[data-tab]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.tab===TAB&&!CALL&&!CUR)));updBadge();
   if(welcome)return drawWelcome();
   if(CALL)return drawCall();
   if(CUR)return drawLead(CUR);
@@ -1257,10 +1391,12 @@ document.addEventListener("click",ev=>{
   if(c("[data-cnew]"))return contactSheet(null);
   const ce=c("[data-cedit]");if(ce)return contactSheet(+ce.dataset.cedit);
   const ca=c("[data-cadd]");if(ca)return contactSheet(+ca.dataset.cadd,{addPhone:true});
-  if(c("[data-addhook]")){HOOK_F=!HOOK_F;return drawLead(CUR);}
+  if(c("[data-nadd]"))return notesSheet(null,true);
+  if(c("[data-nall]"))return notesSheet(null,false);
   const cp=c("[data-copy]");if(cp&&cp.dataset.copy)return copy(cp.dataset.copy);
   if(c("[data-callclose]")){const inn=CALL.inn;CALL=null;CUR=inn;return draw();}
   if(CALL){
+    if(c("[data-pickct]"))return pickCt();
     if(c("[data-fdadd]"))return askContact();
     const nx=c("[data-next]");
     if(nx){if(nx.dataset.next==="@custom")return askTheme(CALL.hist[CALL.hist.length-1].id);if(nx.dataset.next==="@who")return askWho();const th=nx.dataset.theme||CALL.hist[CALL.hist.length-1].theme;CALL.hist.push({id:nx.dataset.next,theme:th});drawCall();window.scrollTo(0,0);if(FD_NODES.includes(nx.dataset.next))askContact();return;}
@@ -1270,7 +1406,7 @@ document.addEventListener("click",ev=>{
 (async()=>{
   if(TG){try{TG.setHeaderColor("#000000");TG.setBackgroundColor("#000000");}catch{}TG.ready();TG.expand();const u=TG.initDataUnsafe&&TG.initDataUnsafe.user;if(u)TGNAME=u.first_name||"";}
   else document.getElementById("demo").hidden=false;
-  await loadAll();await loadProfile();draw();
+  await loadAll();await loadProfile();applyCool();draw();
 })();
 
 (function(){const t=document.getElementById("tabsin");
