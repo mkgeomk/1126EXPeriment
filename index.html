@@ -326,7 +326,7 @@ mark.ph2{background:rgba(240,144,63,.22);color:inherit;border-radius:6px;padding
 
 <div class="app">
   <main id="main"></main>
-  <p class="demo" id="ver">версия 42 · 23.10 19:30</p>
+  <p class="demo" id="ver">версия 43 · 23.10 19:15</p>
   <p class="demo" id="demo" hidden>Режим просмотра вне Telegram: данные хранятся только в этом браузере.</p>
 </div>
 <nav class="tabs"><div class="tabs-in" id="tabsin"></div></nav>
@@ -715,7 +715,7 @@ const KDEF={on:true,n:40,l:8,a:3,m:4,d:4,show:{n:1,l:1,a:1,m:1,z:1}};
 const KREG={n:40,l:8,a:3,m:4,d:4};   // нормы из регламента (часть 2, «Нормативы активности»; в регламенте помечены «утвердить»)
 const AGR_ST=["Назначена встреча","Назначена видео-встреча","Назначен 2-й звонок"];
 let KPI={},KOPEN=false,KVIEW="d";
-const kcfg=()=>{const p=PROFILE.kpi||{};return Object.assign({},KDEF,p,{show:Object.assign({},KDEF.show,p.show||{})});};
+const kcfg=()=>{const p=PROFILE.kpi||{},c=Object.assign({},KDEF,p,{show:Object.assign({},KDEF.show,p.show||{})});for(const k of ["n","l","a","m","d"])c[k]=Math.max(1,parseInt(c[k],10)||KDEF[k]);return c;};
 const kmKey=d=>"kpi_"+d.slice(0,7);
 async function loadKpi(){const ks=[...new Set([iso(today()),addDays(-7)].map(kmKey))],v=await store.get(ks);KPI={};
   for(const k of ks){try{const o=JSON.parse((v&&v[k])||"null")||{};for(const d in o)KPI[k.slice(4)+"-"+d]=o[d];}catch{}}}
@@ -746,7 +746,7 @@ function kpiWire(){const el=document.getElementById("kpi");if(!el)return;
   el.onclick=ev=>{const a=ev.target.closest("[data-kpi]");if(!a)return;const v=a.dataset.kpi;
     if(v==="set")return openProfile();if(v==="res")return openRes();if(v==="d"||v==="w")KVIEW=v;else KOPEN=!KOPEN;
     const h=kpiInner();if(h)el.innerHTML=h;};}
-function kpiForm(){const c=kcfg(),row=(k,lab)=>`<div class="kr"><label><input type="checkbox" id="ks_${k}" ${c.show[k]?"checked":""}>${lab}</label><input type="number" inputmode="numeric" min="0" max="999" id="kv_${k}" value="${c[k]}"></div>`;
+function kpiForm(){const c=kcfg(),row=(k,lab)=>`<div class="kr"><label><input type="checkbox" id="ks_${k}" ${c.show[k]?"checked":""}>${lab}</label><input type="number" inputmode="numeric" min="1" max="999" id="kv_${k}" value="${c[k]}"></div>`;
   return `<div class="kps"><div class="sw"><span>KPI на экране «Сегодня»</span><input type="checkbox" id="ko" ${c.on?"checked":""} aria-label="Включить KPI"></div>
     <div id="kf" ${c.on?"":"hidden"}>
       ${row("n","Наборы в день")}${row("l","Разговоры с ЛПР в день")}${row("a","Договорённости в день")}${row("m","Встречи в неделю")}
@@ -755,7 +755,7 @@ function kpiForm(){const c=kcfg(),row=(k,lab)=>`<div class="kr"><label><input ty
       <button class="gbtn kreset" type="button" id="kreset">Сбросить к регламенту</button>
       <p class="kn">Нормы по умолчанию взяты из регламента. Галочка слева — показывать показатель на экране.</p></div>
     <p class="kn">Отметки о звонках записываются всегда, даже при выключенном KPI.</p></div>`;}
-function kpiRead(){const g=id=>document.getElementById(id),n=(id,d,mx)=>{const v=parseInt((g(id)||{}).value,10);return isNaN(v)?d:Math.max(0,Math.min(mx,v));};
+function kpiRead(){const g=id=>document.getElementById(id),n=(id,d,mx)=>{const v=parseInt((g(id)||{}).value,10);return isNaN(v)?d:Math.max(1,Math.min(mx,v));};
   PROFILE.kpi={on:!!g("ko").checked,n:n("kv_n",40,999),l:n("kv_l",8,999),a:n("kv_a",3,999),m:n("kv_m",4,999),d:Math.max(1,n("kv_d",4,7)),
     show:{n:+g("ks_n").checked,l:+g("ks_l").checked,a:+g("ks_a").checked,m:+g("ks_m").checked,z:+g("ks_z").checked}};}
 function kpiWireForm(){const g=id=>document.getElementById(id);
@@ -1352,7 +1352,7 @@ function openProfile(){closeOv();
     ${kpiForm()}
     <button class="btn" type="button" id="pf_s" style="margin-top:16px">Сохранить</button>
     <button class="gbtn" type="button" data-cheat style="margin-top:10px;width:100%">Шпаргалка по тегам</button>
-    <p class="demo">версия 42</p></div>`;
+    <p class="demo">версия 43</p></div>`;
   document.body.appendChild(o);kpiWireForm();document.getElementById("pf_r").onclick=()=>{closeOv();openRes();};
   o.addEventListener("click",e=>{if(e.target===o)closeOv();});
   document.getElementById("pf_s").onclick=async()=>{kpiRead();PROFILE.name=document.getElementById("pf_n").value.trim();PROFILE.bank=document.getElementById("pf_b").value.trim();PROFILE.pos=document.getElementById("pf_p").value.trim();PROFILE.cool=Math.max(1,Math.min(365,parseInt(document.getElementById("pf_c").value,10)||14));applyCool();PROFILE.done=true;await saveProfile();closeOv();toast("Сохранено");draw();};
